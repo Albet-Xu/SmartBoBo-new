@@ -1,0 +1,23 @@
+# --- uv / Python ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- CloakBrowser runtime state ---
+cloak/venv/
+cloak/data/
+cloak/cloakserve.log
+cloak/plugin/node_modules/
+
+# --- dsh workspace & local runtime state ---
+# dsh/ is a clone of upstream deepseek-harness-desktop (own .git + node_modules);
+# obtain it separately, see README.
+dsh/
+.dsh/
+
+# --- Node ---
+node_modules/
+
+# --- misc ---
+*.log
+.temp/
