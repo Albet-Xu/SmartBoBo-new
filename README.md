@@ -13,10 +13,11 @@
 | `pyproject.toml` / `uv.lock` / `.python-version` | Python 运行时（uv 管理，见下） |
 | `.dsh/` | 本地 DSH_HOME 运行状态（含凭据，已 gitignore） |
 | `dsh/` | deepseek-harness-desktop 源码工作区（含 SmartBoBo 品牌改动；以普通文件收录，不含其 `.git` 历史与 `source/` 第三方子仓） |
+| `vendor/` | 从桌面端安装包迁出的 `dsh-tauri-*` 插件构建产物（profile 以 link: 引用；含定点补丁，见 docs/前端界面/03） |
 
 ## 运行前提
 
-1. 已安装 [Deepseek Harness Desktop](https://github.com/dsh-tauri/deepseek-harness-desktop)（提供打包内核），或自行设置 `DSH_KERNEL`。
+1. 打包内核位于 `%APPDATA%\dsh-tauri\dependencies\dsh\`（随原桌面应用首次运行下载，独立于安装目录）；若不存在，重装 [Deepseek Harness Desktop](https://github.com/dsh-tauri/deepseek-harness-desktop) 跑一次下载，或自行设置 `DSH_KERNEL`。
 2. Windows 双击 `启动.cmd`；浏览器自动打开 `http://127.0.0.1:7075`。
 
 ## CloakBrowser 运行时（uv 管理 Python 依赖）

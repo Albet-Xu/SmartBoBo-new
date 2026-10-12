@@ -25,6 +25,9 @@ dsh/.temp/
 
 # --- Node ---
 node_modules/
+# vendor/ 的 dsh-tauri 插件构建产物以普通文件收录（勿随 node_modules 规则忽略）
+!vendor/dsh-resources/node_modules/
+!vendor/dsh-resources/node_modules/**
 
 # --- misc ---
 *.log

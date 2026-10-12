@@ -27,16 +27,16 @@
 
 ## 二、为什么不能把 profile 接到仓内构建（重要教训）
 
-`启动.cmd` 用的内核是打包版 `@deepseek-ai/dsh` 0.2.0-rc.2；web profile 里 `dsh-tauri-model` 原本 link 到**垃圾箱发布的同版本构建**。仓内 `packages/dsh-tauri-model` 源码比它**新一个大版本**：
+`启动.cmd` 用的内核是打包版 `@deepseek-ai/dsh` 0.2.0-rc.2；web profile 里 `dsh-tauri-model` 原本 link 到**桌面端安装包自带的同版本构建**。仓内 `packages/dsh-tauri-model` 源码比它**新一个大版本**：
 
-| 差异点 | 垃圾箱构建（与 0.2.0-rc.2 内核配套） | 仓内源码构建 |
+| 差异点 | 安装包构建（与 0.2.0-rc.2 内核配套，已迁至 vendor/dsh-resources） | 仓内源码构建 |
 |---|---|---|
 | 宿主服务定义 | `routes(ctx)` + `setCurrentHostInstance` | `defineWebServer`（来自新依赖 `dsh-h3`） |
 | dependencies | 仅 `dsh-tauri` / `dsh-tauri-ui` | 多了 `dsh-h3`、`h3` |
 
 把 junction 切到仓内构建后，宿主侧在旧内核上加载失败 → 插件整体不生效 → **整个「模型」栏目消失**（该 fork 与官方 `ui-settings-models` 互斥，官方入口已被关掉，于是模型页整个没了）。
 
-**结论**：与内核配套的运行时必须用垃圾箱构建；仓内源码的改动（`?? false`、`needsSetup` 恒 false）作为**源码基线**保留，等将来整体升级内核时随包发布，不接到当前 profile。
+**结论**：与内核配套的运行时必须用安装包构建（现已整体 vendored 至 `vendor/dsh-resources/node_modules`，不再依赖原安装目录）；仓内源码的改动（`?? false`、`needsSetup` 恒 false）作为**源码基线**保留，等将来整体升级内核时随包发布，不接到当前 profile。
 
 ## 三、最终改动清单（生效路径）
 
@@ -54,7 +54,7 @@
 
 ### 3.2 关闭设置卡片 — 定点补丁现网 client 产物
 
-对 `E:\垃圾箱\Deepseek Harness Desktop\resources\node_modules\dsh-tauri-model\dist\client.cjs` 做两处定点替换（补丁前依次自动备份为 `client.cjs.bak-before-needsSetup`、`client.cjs.bak-before-hide-deepseek`；改后 `node --check` 语法自检通过）：
+对 `E:\SmartBoBo\vendor\dsh-resources\node_modules\dsh-tauri-model\dist\client.cjs` 做两处定点替换（补丁前依次自动备份为 `client.cjs.bak-before-needsSetup`、`client.cjs.bak-before-hide-deepseek`；改后 `node --check` 语法自检通过）（原位于垃圾箱安装目录，已随 2026-10-12 资源迁移整体复制到 vendor/，补丁状态随之保留）：
 
 **补丁 a — 隐藏 DeepSeek 提供商行卡片**（用户圈红的那张「DeepSeek ● 编辑」行）：
 
@@ -74,7 +74,7 @@ function Mt(e,t){return t||e.entry.provider===`deepseek-account`||e.entry.settin
 function Mt(e,t){return!1}
 ```
 
-与 `apply-brand-patch.mjs` 对内核做幂等皮肤补丁同一思路：只改显示逻辑，不动任何功能代码。若垃圾箱文件将来被还原，重跑上述两处替换即可（全文均唯一匹配）。
+与 `apply-brand-patch.mjs` 对内核做幂等皮肤补丁同一思路：只改显示逻辑，不动任何功能代码。若 vendor 内产物被原始构建覆盖，重跑上述两处替换即可（全文均唯一匹配）。
 
 ### 3.3 仓内源码基线（不接入当前 profile，供未来升级）
 
@@ -85,17 +85,17 @@ function Mt(e,t){return!1}
 
 ### 3.4 profile 接线保持原样
 
-`.dsh/profiles/web/package.json` 的 `dsh-tauri-model` 保持指向垃圾箱构建：
+`.dsh/profiles/web/package.json` 的 `dsh-tauri-model` 保持指向 vendored 构建：
 
 ```
-"dsh-tauri-model": "link:E:/垃圾箱/Deepseek Harness Desktop/resources/node_modules/dsh-tauri-model"
+"dsh-tauri-model": "link:../../../vendor/dsh-resources/node_modules/dsh-tauri-model"
 ```
 
-`node_modules/dsh-tauri-model` junction 同样指回该目录（PowerShell 重建：删旧 link 后 `New-Item -ItemType Junction -Path <link> -Target <trash>`）。
+`node_modules/dsh-tauri-model` junction 同样指回该目录（重建：在 `.dsh/profiles/web` 下重跑 `pnpm install` 即可）。
 
 ## 四、验证记录
 
-1. junction 解析：`profiles/web/node_modules/dsh-tauri-model` → 垃圾箱目录，其 `dist/client.cjs` 含 `function Mt(e,t){return!1}`。
+1. junction 解析：`profiles/web/node_modules/dsh-tauri-model` → `E:\SmartBoBo\vendor\dsh-resources\node_modules\dsh-tauri-model\`（迁移后），其 `dist/client.cjs` 含 `function Mt(e,t){return!1}`。
 2. 实机启动（`node <kernel> --profile web --port 7075 --no-open`）：
    - 启动日志无 error/fail，`dsh-tauri-model` 正常加载（页面出现 5 处注册痕迹）；
    - 页面注入 `__DSH_MODELS_ONBOARDING__ = {"credentialOnboarding":false}`；
@@ -106,7 +106,7 @@ function Mt(e,t){return!1}
 ## 五、回退方式
 
 1. 弹窗：删掉 `cordis.patch.yml` 中 `id: dsh-tauri-model` 的覆盖块。
-2. DeepSeek 行卡片 + needsSetup：把 `client.cjs.bak-before-needsSetup` 覆盖回 `client.cjs`（该备份是两处补丁前的原始产物）；若只回退行卡片，用 `client.cjs.bak-before-hide-deepseek` 覆盖。
+2. DeepSeek 行卡片 + needsSetup：把 `E:\SmartBoBo\vendor\dsh-resources\node_modules\dsh-tauri-model\dist\` 中的 `client.cjs.bak-before-needsSetup` 覆盖回 `client.cjs`（该备份是两处补丁前的原始产物）；若只回退行卡片，用同目录的 `client.cjs.bak-before-hide-deepseek` 覆盖。
 3. 重启 `启动.cmd`。
 
 ## 六、刻意不动
