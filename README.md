@@ -12,7 +12,7 @@
 | `docs/` | 集成与界面文档 |
 | `pyproject.toml` / `uv.lock` / `.python-version` | Python 运行时（uv 管理，见下） |
 | `.dsh/` | 本地 DSH_HOME 运行状态（含凭据，已 gitignore） |
-| `dsh/` | deepseek-harness-desktop 源码工作区（独立 git 仓库，已 gitignore） |
+| `dsh/` | deepseek-harness-desktop 源码工作区（含 SmartBoBo 品牌改动；以普通文件收录，不含其 `.git` 历史与 `source/` 第三方子仓） |
 
 ## 运行前提
 
@@ -29,10 +29,6 @@ node cloak\plugin\test.mjs                                   # 回归测试（�
 
 依赖声明在 `pyproject.toml`，锁定在 `uv.lock`，虚拟环境在项目根 `.venv/`。详见 `docs/CloakBrowser浏览器/01-CloakBrowser集成操作指南.md`。
 
-## dsh 源码工作区（可选）
+## dsh 源码工作区
 
-`dsh/` 是 [dsh-tauri/deepseek-harness-desktop](https://github.com/dsh-tauri/deepseek-harness-desktop) 的本地克隆（含 SmartBoBo 品牌改动，由 `scripts/apply-brand-patch.mjs` 幂等生成），不随本仓库分发。需要修改内核时：
-
-```bash
-git clone https://github.com/dsh-tauri/deepseek-harness-desktop.git dsh
-```
+`dsh/` 源自 [dsh-tauri/deepseek-harness-desktop](https://github.com/dsh-tauri/deepseek-harness-desktop)，已作为普通文件随本仓库上传（其本地 `.git` 历史、`node_modules`、`source/` 下 13 个第三方子仓不上传）。品牌改动由 `scripts/apply-brand-patch.mjs` 幂等生成。

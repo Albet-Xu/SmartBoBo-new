@@ -9,10 +9,15 @@ cloak/data/
 cloak/cloakserve.log
 cloak/plugin/node_modules/
 
-# --- dsh workspace & local runtime state ---
-# dsh/ is a clone of upstream deepseek-harness-desktop (own .git + node_modules);
-# obtain it separately, see README.
-dsh/
+# --- dsh workspace ---
+# dsh/ is uploaded as plain files (its own .git history and build junk stay out).
+# dsh/source/ = 13 third-party submodule checkouts (own .git pointers) - not uploaded;
+# dsh's own .gitignore ignores them too.
+dsh/.git/
+dsh/node_modules/
+dsh/src-tauri/target/
+dsh/source/
+dsh/.temp/
 .dsh/
 
 # --- Node ---
@@ -21,3 +26,11 @@ node_modules/
 # --- misc ---
 *.log
 .temp/
+
+# --- 功能运行时状态与密钥（不进版本库）---
+# 经验池连接配置：含 Qdrant API Key，新环境按 docs/后端功能/02 手工创建
+experience-pool.json
+# 代理池失败台账（运行时生成）
+data/proxy_failed.json
+# 闸门会话粘性状态（运行时生成）
+.dsh/bobo-session-state/
