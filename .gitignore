@@ -9,6 +9,9 @@ cloak/data/
 cloak/cloakserve.log
 cloak/plugin/node_modules/
 
+# --- DBX runtime: packaged binaries + local data (db/logs/profiles) - not uploaded ---
+dbx-runtime/
+
 # --- dsh workspace ---
 # dsh/ is uploaded as plain files (its own .git history and build junk stay out).
 # dsh/source/ = 13 third-party submodule checkouts (own .git pointers) - not uploaded;

@@ -21,10 +21,12 @@ export function cloakRuntime(config = {}) {
   const cloakservePath = path.join(root, 'bin', 'cloakserve')
   const logPath = path.join(root, 'cloakserve.log')
   const endpoint = `http://127.0.0.1:${port}`
+  const scriptsDir = path.join(projectRoot, 'scripts')
 
   let child = null
   let spawnedByUs = false
   let readyPromise = null
+  let currentProxy = null
 
   function logTail(maxBytes = 4096) {
     try {
@@ -90,10 +92,12 @@ export function cloakRuntime(config = {}) {
         `CloakBrowser runtime not provisioned (missing ${pythonBin}). Run first: powershell -ExecutionPolicy Bypass -File "${path.join(root, 'ensure.ps1')}" (uv sync + browser install)`,
       )
     }
+    const args = [cloakservePath, `--port=${port}`, `--data-dir=${dataDir}`]
+    if (currentProxy) args.push(`--proxy-server=${currentProxy}`)
     const logFd = openSync(logPath, 'a')
     let proc
     try {
-      proc = spawn(pythonBin, [cloakservePath, `--port=${port}`, `--data-dir=${dataDir}`], {
+      proc = spawn(pythonBin, args, {
         cwd: root,
         windowsHide: true,
         detached: true,
@@ -171,5 +175,12 @@ export function cloakRuntime(config = {}) {
     spawnedByUs = false
   }
 
-  return { ensureReady, probe, dispose, endpoint, port, root, dataDir }
+  async function ensureProxy(proxy) {
+    const next = proxy || null
+    if (next === currentProxy) return
+    if (await probe()) await dispose()
+    currentProxy = next
+  }
+
+  return { ensureReady, ensureProxy, probe, dispose, endpoint, port, root, dataDir, pythonBin, scriptsDir }
 }

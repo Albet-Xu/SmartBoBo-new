@@ -1,8 +1,10 @@
 import { chromium } from 'playwright-core'
+import { acquireProxy, proxyPoolOf } from '../proxy.js'
 
 const MAX_CONTENT_CHARS = 128000
 
-export function cloakFetchTool(runtime) {
+export function cloakFetchTool(runtime, deps = {}) {
+  const { proxyMode, settings } = deps
   return {
     name: 'cloak_fetch',
     description:
@@ -42,7 +44,24 @@ export function cloakFetchTool(runtime) {
       const waitUntil = args.waitUntil || 'domcontentloaded'
       const timeout = Number(args.timeoutMs) > 0 ? Number(args.timeoutMs) : 30000
 
+      let proxy = null
+      const session = exec?.agent?.session
+      if (proxyMode && session && proxyMode.of(session)) {
+        try {
+          const pool = proxyPoolOf(settings?.())
+          if (pool?.enabled && pool.sources.some((source) => source.enabled && source.apiUrl)) {
+            proxy = await acquireProxy(
+              runtime.pythonBin, runtime.scriptsDir, pool, args.url,
+              Math.max(pool.timeoutMs + 15000, 60000), exec?.signal,
+            )
+          }
+        } catch (err) {
+          return { ok: false, error: String(err?.message ?? err) }
+        }
+      }
+
       try {
+        await runtime.ensureProxy(proxy)
         await runtime.ensureReady()
       } catch (err) {
         return { ok: false, error: String(err?.message ?? err) }

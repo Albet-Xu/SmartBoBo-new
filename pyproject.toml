@@ -14,6 +14,22 @@ requires-python = ">=3.11"
 dependencies = [
     # 隐身浏览器运行时 —— [serve] 附带 cloakserve 所需的 playwright / aiohttp / websockets 等
     "cloakbrowser[serve]==0.6.0",
+    # DBX 数据库 MCP（dbx/scripts/dbx_mcp_server.py）—— FastMCP stdio server 框架
+    "mcp>=1.2,<2",
+    # dbx_connector 的数据库驱动 —— MySQL / MariaDB
+    "pymysql>=1.1.0",
+    # dbx_connector 的数据库驱动 —— PostgreSQL
+    "psycopg[binary]>=3.2.0",
+    # 代理池（scripts/proxy_pool.py）—— 代理 API 拉取与候选探测
+    "httpx>=0.27",
+    # 经验池（skills/*/memory_store.py）—— Qdrant 向量库客户端 + 本地 embedding
+    "qdrant-client>=1.19,<2",
+    "fastembed>=0.6,<1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
 ]
 
 [tool.uv]
