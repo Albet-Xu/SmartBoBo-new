@@ -293,7 +293,7 @@ async def _screens_proxy(pool: ProxyPool, proxy: str, target_url: str) -> bool:
     """筛选探针：只要目标站回了**任一** HTTP 响应即视为代理可用。
 
     反爬/JS 挑战站（如知乎）对纯 HTTP 客户端返回 403/挑战页，但此时代理其实
-    已经到达目标主机——是否真能采下来应由真实浏览器（camoufox）定夺，筛选阶段
+    已经到达目标主机——是否真能采下来应由真实浏览器（CloakBrowser）定夺，筛选阶段
     不应据此把代理判死。因此只有超时/拒连/重置这类"代理本身不通"才判无效。
     """
     proxy_url = pool._format_proxy(proxy)

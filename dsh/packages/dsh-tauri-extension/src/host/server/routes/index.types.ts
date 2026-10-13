@@ -184,3 +184,51 @@ export interface McpImportApplyBody {
   items: Array<{ agent: string, name: string }>
   scope?: 'global' | 'profile'
 }
+
+export interface RepoListQuery {
+  ns?: unknown
+}
+
+export interface RepoDetailQuery {
+  ns?: unknown
+  id?: unknown
+}
+
+export interface RepoInstallBody {
+  ns?: unknown
+  id?: unknown
+  scope?: unknown
+}
+
+export interface RepoUninstallBody {
+  ns?: unknown
+  id?: unknown
+}
+
+export interface RepoScopeBody {
+  toolId?: unknown
+  scope?: unknown
+}
+
+export interface RepoCategoryBody {
+  id?: unknown
+  category?: unknown
+}
+
+export interface MarketSearchQuery {
+  q?: unknown
+  cursor?: unknown
+}
+
+export interface MarketDetailQuery {
+  id?: unknown
+}
+
+export interface MarketFileQuery {
+  id?: unknown
+  path?: unknown
+}
+
+export interface MarketInstallBody {
+  id?: unknown
+}

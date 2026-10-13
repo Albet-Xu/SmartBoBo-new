@@ -137,10 +137,12 @@ export function readinessPath(env = process.env) {
   roots.push(join(String(env.BOBO_ROOT || process.cwd()), 'bobo-data'))
   roots.push(join(homedir(), 'bobo-data'))
   for (const root of roots) {
-    const p = join(root, 'reverse-experience', 'readiness.json')
+    const p = join(root, 'experience-pool', 'reverse-experience', 'readiness.json')
     if (existsSync(p)) return p
+    const legacy = join(root, 'reverse-experience', 'readiness.json')
+    if (existsSync(legacy)) return legacy
   }
-  return join((dshHome ? dirname(dshHome) : roots[1]), 'reverse-experience', 'readiness.json')
+  return join((dshHome ? dirname(dshHome) : roots[1]), 'experience-pool', 'reverse-experience', 'readiness.json')
 }
 
 /**
@@ -688,8 +690,8 @@ export function selftest(cfg = {}) {
     label: '自检模式',
     searchTool: 'mcp__reverse-memory__reverse_memory_search',
     saveTool: 'mcp__reverse-memory__reverse_memory_save',
-    gatedTools: ['mcp__camoufox-debug__debug_navigate'],
-    closeTools: ['mcp__camoufox-debug__debug_close'],
+    gatedTools: ['mcp__cloak-debug__debug_navigate'],
+    closeTools: ['mcp__cloak-debug__debug_close'],
     ...cfg,
   }
   const cfgOld = { ...base, lazyReminders: false }
@@ -708,7 +710,7 @@ export function selftest(cfg = {}) {
   // 2) 懒激活未激活 → reminder 静默，但 decide 照常拦截（拦截常开）
   const lazy = createGateCore(cfgLazy, { warn: () => {} })
   check('未激活时提醒静默', lazy.reminder({ sessionId: 's1' }) === null, lazy.reminder({ sessionId: 's1' }))
-  const deny = lazy.decide({ sessionId: 's1', toolName: 'mcp__camoufox-debug__debug_navigate', args: { url: 'https://example.com/a' } })
+  const deny = lazy.decide({ sessionId: 's1', toolName: 'mcp__cloak-debug__debug_navigate', args: { url: 'https://example.com/a' } })
   check('未激活时拦截仍生效', typeof deny === 'string' && deny.includes('reverse_memory_search'), deny)
 
   // 3) 激活（用户文本信号由接线层折算成 activate 调用）→ 提醒恢复
@@ -724,11 +726,11 @@ export function selftest(cfg = {}) {
   // 5) observe(searchTool) 视为激活 + 记为已检索
   lazy.observe({ sessionId: 's2', toolName: 'mcp__reverse-memory__reverse_memory_search', args: { domain: 'example.com' } })
   check('主动检索即激活', lazy.state('s2').activated === true, lazy.state('s2').activated)
-  check('已检索站点不再拦截', lazy.decide({ sessionId: 's2', toolName: 'mcp__camoufox-debug__debug_navigate', args: { url: 'https://www.example.com/x' } }) === null, '同站放行')
+  check('已检索站点不再拦截', lazy.decide({ sessionId: 's2', toolName: 'mcp__cloak-debug__debug_navigate', args: { url: 'https://www.example.com/x' } }) === null, '同站放行')
 
   // 6) observe(gatedTool) 不算激活（只记 acted；激活由接线层 pre-execute 负责）
   const lazy2 = createGateCore(cfgLazy, { warn: () => {} })
-  lazy2.observe({ sessionId: 's3', toolName: 'mcp__camoufox-debug__debug_navigate', args: { url: 'https://a.com/' } })
+  lazy2.observe({ sessionId: 's3', toolName: 'mcp__cloak-debug__debug_navigate', args: { url: 'https://a.com/' } })
   check('仅观测不误激活', lazy2.state('s3').activated === false, lazy2.state('s3').activated)
 
   // 7) 触发词匹配口径
@@ -750,7 +752,7 @@ export function selftest(cfg = {}) {
     { name: 'mcp__reverse-memory__reverse_memory_stats' },
     { name: 'mcp__reverse-memory__reverse_memory_cleanup' },
     { name: 'mcp__reverse-memory__reverse_memory_sync' },
-    { name: 'mcp__camoufox-debug__debug_navigate' },
+    { name: 'mcp__cloak-debug__debug_navigate' },
     { name: 'todo_write' },
   ]
   const all = mkTools()

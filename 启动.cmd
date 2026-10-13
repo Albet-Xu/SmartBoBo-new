@@ -60,6 +60,36 @@ rem --- Project-local DSH_HOME: state stays inside E:\SmartBoBo ---
 set "DSH_HOME=%ROOT%\.dsh"
 if not exist "%DSH_HOME%" mkdir "%DSH_HOME%"
 
+rem --- Preset-relative root: market presets resolve their MCP rows as
+rem     '../.venv/Scripts/python.exe' + '../scripts/*.py' against this cwd,
+rem     so it must be the 'dsh' subfolder for '../' to land on the repo root.
+rem     BOBO_ROOT is re-exported into each MCP child as a !!js expression; when
+rem     it is unset the memory servers cannot locate skills/*/memory_store.py.
+set "BOBO_ROOT=%ROOT%"
+set "BOBO_DSH_ROOT=%ROOT%\dsh"
+
+rem --- Refresh global env manifest (idempotent; no downloads, no process start) ---
+rem Writes dbx-runtime/env-manifest.json used by the bobo-env skill. CloakBrowser
+rem readiness is probe-only here; the service itself starts lazily on first use.
+if exist "%ROOT%\.venv\Scripts\python.exe" (
+  echo [INFO] Refreshing env manifest...
+  "%ROOT%\.venv\Scripts\python.exe" "%ROOT%\scripts\gen_env_manifest.py" --root "%ROOT%"
+) else (
+  echo [WARN] .venv not found; skipping env manifest refresh.
+)
+
+rem --- Seed/sync the DBX built-in AI config row (bridge endpoint; idempotent) ---
+rem dbx/scripts/dbx_ai_seed.py creates <DSH_HOME>/.bobo-llm-token if missing and
+rem only inserts when ai_configs is empty (never overwrites manual configs). The
+rem dsh-dbx plugin spawns dbx-web inside the session, so seeding here keeps the
+rem sqlite write ahead of the service without owning the service lifecycle.
+if exist "%ROOT%\.venv\Scripts\python.exe" (
+  echo [INFO] Seeding DBX AI bridge config...
+  "%ROOT%\.venv\Scripts\python.exe" "%ROOT%\dbx\scripts\dbx_ai_seed.py" --dbx-db "%ROOT%\dbx-runtime\data\dbx.db"
+) else (
+  echo [WARN] .venv not found; skipping DBX AI config seeding.
+)
+
 echo [INFO] DSH_HOME = %DSH_HOME%
 echo [INFO] Kernel    = %KERNEL%
 echo [INFO] Serving   = http://127.0.0.1:7075 (browser opens automatically)

@@ -25,6 +25,16 @@ dependencies = [
     # 经验池（skills/*/memory_store.py）—— Qdrant 向量库客户端 + 本地 embedding
     "qdrant-client>=1.19,<2",
     "fastembed>=0.6,<1",
+    # 采集/逆向预设的 MCP 依赖（从 BoBo-Handyman 迁移）——
+    # scripts/crawl_common.py 的 HTML→Markdown 与 scripts/skeleton_gen.py 的 DOM 骨架提取
+    "html2text>=2024.2.26",
+    "lxml>=5.0",
+    # 文献汇报模式 —— deck plan → 可编辑 PPTX（scripts/report_pptx.py）
+    "python-pptx>=1.0",
+    # 文献汇报模式 —— report_pptx 的图片资源缩放 / report_qa 的渲染辅助
+    "Pillow>=10.0",
+    # PDF 提取 MCP（scripts/pdf_extract_server.py）—— 文字 + 表格（无 OCR）
+    "pdfplumber>=0.11.4",
 ]
 
 [dependency-groups]
@@ -37,3 +47,8 @@ dev = [
 # 标记为非 package（virtual project），只安装其依赖、不安装本包自身。
 package = false
 # 固定解释器版本：见项目根的 `.python-version` 文件（`uv python pin 3.13` 生成）。
+
+[tool.pytest.ini_options]
+# 只跑本项目自己的测试；dsh/source/ 里的上游 SDK 测试不属于本项目、
+# 且依赖未安装的 deepseek_harness 包，收集进来只会误报。
+testpaths = ["dbx/tests"]

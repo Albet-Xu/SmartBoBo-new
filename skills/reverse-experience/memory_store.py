@@ -157,8 +157,8 @@ def _packaged_data_root() -> Path | None:
 
 
 def data_dir() -> Path:
-    # DSH_HOME（桌面壳/打包版用户数据根）优先：数据存到 DSH_HOME 同级
-    # reverse-experience，开发（bobo-data）与打包（BoBoData）布局一致；
+    # DSH_HOME（桌面壳/打包版用户数据根）优先：数据统一存到 DSH_HOME 同级
+    # experience-pool/reverse-experience，开发（bobo-data）与打包（BoBoData）布局一致；
     # 无 DSH_HOME 时先按打包布局推断数据根，再回退 BoBo 根 bobo-data；
     # 绝不静默落到用户主目录（否则经验会错位写到 C:\Users\<名>\bobo-data）。
     if _env("DSH_HOME"):
@@ -173,7 +173,11 @@ def data_dir() -> Path:
             "无法定位 BoBo 数据目录：缺少 DSH_HOME（MCP 子进程环境被清洗且无打包布局可回退）。"
             "请确认桌面壳注入 DSH_HOME，且 agent 预设的 env 转发块已随包。"
         )
-    d = base / RESULTS_DIR_NAME
+    # 三池数据统一收在 <数据根>/experience-pool/ 下；旧布局（<数据根>/<池名>）作回退
+    d = base / "experience-pool" / RESULTS_DIR_NAME
+    legacy = base / RESULTS_DIR_NAME
+    if not d.is_dir() and legacy.is_dir():
+        return legacy
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -254,11 +258,13 @@ POOL_CONFIG_FILENAME = "experience-pool.json"
 def pool_config() -> dict[str, Any]:
     """读数据根 experience-pool.json（三个经验池共享同一份）；读失败静默当作未配置。"""
     try:
-        p = data_dir().parent / POOL_CONFIG_FILENAME
-        if not p.is_file():
-            return {}
-        cfg = json.loads(p.read_text(encoding="utf-8"))
-        return cfg if isinstance(cfg, dict) else {}
+        d = data_dir()
+        for p in (d.parent / POOL_CONFIG_FILENAME,
+                  d.parent.parent / POOL_CONFIG_FILENAME):
+            if p.is_file():
+                cfg = json.loads(p.read_text(encoding="utf-8"))
+                return cfg if isinstance(cfg, dict) else {}
+        return {}
     except Exception:
         return {}
 

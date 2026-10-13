@@ -84,3 +84,39 @@ export interface DeleteApiTauriExtensionRootsBody {
 export interface GetApiTauriExtensionSkillQuery {
   name?: GetApiTauriExtensionSkillQueryName;
 }
+export type GetApiTauriExtensionRepoListResponse = { catalog: { entries: { ns: "presets" | "skills" | "tools"; id: string; name: string; description: string; version: string | null; installedVersion: string | null; status: "available" | "installed" | "update-available"; tags: string[]; requires: string[]; size: number | null; target: string; builtin?: undefined | false | true; scope?: undefined | string[]; category?: undefined | string; unresolved?: undefined | string[] }[]; generatedAt: string | null; restored: false | true } } | { error: string };
+export type GetApiTauriExtensionRepoListQuery = { ns: "presets" | "skills" | "tools" };
+export type GetApiTauriExtensionRepoDetailResponse = { detail: { id: string; markdown: string; cached: false | true } } | { error: string };
+export type GetApiTauriExtensionRepoDetailQuery = { ns: "presets" | "skills" | "tools"; id: string };
+export type PostApiTauriExtensionRepoInstallResponse = { receipt: { ns: "presets" | "skills" | "tools"; id: string; version: string | null; target: string; replaced: false | true; fileCount: number } } | { error: string };
+export type PostApiTauriExtensionRepoUninstallResponse = { receipt: { ns: "presets" | "skills" | "tools"; id: string; followedBy: string[] } } | { error: string };
+export type PostApiTauriExtensionRepoScopeResponse = { receipt: { toolId: string; scope: string[] } } | { error: string };
+export type PostApiTauriExtensionRepoCategoryResponse = { receipt: { id: string; category: string | null } } | { error: string };
+export type GetApiTauriExtensionMarketSearchResponse = { page: { items: { id: string; source: string; slug: string; name: string; summary: string; author: { handle: string; displayName?: undefined | string }; stats: { downloads: number; installs?: undefined | number; stars?: undefined | number }; tags: string[]; securityStatus: string; installState: string; notInstallableReason?: undefined | string; version?: undefined | string; updatedAt?: undefined | number }[]; nextCursor: string | null; sources: { clawhub: "ok" | "cached" | "degraded" | "failed"; skillhub: "ok" | "cached" | "degraded" | "failed" } } } | { error: string };
+export type GetApiTauriExtensionMarketSearchQuery = { q?: undefined | string; cursor?: undefined | string };
+export type GetApiTauriExtensionMarketDetailResponse = { detail: { id: string; name: string; source: string; summary: string; description: string; skillMd: string; frontmatter: { [key: string]: string | string[] }; files: { path: string; size: number; sha256?: undefined | string; contentType?: undefined | string }[]; capabilities: { kind: string; severity: string; label: string; evidence: string[] }[]; triggers: string[]; installState: string; updateAvailable: false | true; version?: undefined | string; notInstallableReason?: undefined | string; installedInfo?: undefined | { version?: undefined | string; installedAt: string; dirName: string }; cached?: undefined | false | true } } | { error: string };
+export type GetApiTauriExtensionMarketDetailQuery = { id: string };
+export type GetApiTauriExtensionMarketFileResponse = { file: { path: string; content: string; language: string; size: number; truncated: false | true; cached?: undefined | false | true } } | { error: string };
+export type GetApiTauriExtensionMarketFileQuery = { id: string; path: string };
+export type PostApiTauriExtensionMarketInstallResponse = { receipt: { id: string; dirName: string; dir: string; version?: undefined | string; fileCount: number; replaced: false | true } } | { error: string };
+
+export interface PostApiTauriExtensionRepoInstallBody {
+  ns: "presets" | "skills" | "tools";
+  id: string;
+  scope?: undefined | string[];
+}
+export interface PostApiTauriExtensionRepoUninstallBody {
+  ns: "presets" | "skills" | "tools";
+  id: string;
+}
+export interface PostApiTauriExtensionRepoScopeBody {
+  toolId: string;
+  scope: string[];
+}
+export interface PostApiTauriExtensionRepoCategoryBody {
+  id: string;
+  category?: undefined | string;
+}
+export interface PostApiTauriExtensionMarketInstallBody {
+  id: string;
+}

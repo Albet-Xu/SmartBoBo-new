@@ -7,7 +7,8 @@
  * 默认内核根：%APPDATA%\dsh-tauri\dependencies\dsh
  */
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
 const HEADLINE_ZH_ORIGINAL = '"hero.headline": "探索未至之境"'
@@ -76,9 +77,53 @@ const KERNEL_COPY = [
   ]],
 ]
 
+// 设置导航图标：两个自建设置页（经验池 / 代理池）的导航字形。
+// 章节注册（settings.section）只带 id/order/label，注册方给不了图标；字形只在
+// ui-settings-general 的 navIcon(id) 里按 id 硬编码，未知 id 落兜底齿轮。槽位覆盖不到，
+// 与参考项目 BoBo-Handyman 的 SettingsRoot.tsx 补丁同源（proxy-pool → IconApiOutlineMedium、
+// experience-pool → IconSparkleMedium，均复用内核既有字形，不新增图标文件）。
+const NAV_ICON_FALLBACK = '\t\t\treturn (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutlineMedium, {\n'
+  + '\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n'
+  + '\t\t\t\tsize: 16\n'
+  + '\t\t\t});'
+const NAV_ICON_BRANCHES = '\t\t\tif (id === "proxy-pool") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconApiOutlineMedium, {\n'
+  + '\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n'
+  + '\t\t\t\tsize: 16\n'
+  + '\t\t\t});\n'
+  + '\t\t\tif (id === "experience-pool") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSparkleMedium, {\n'
+  + '\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n'
+  + '\t\t\t\tsize: 16\n'
+  + '\t\t\t});\n'
+
+// ── 设置面板导航图标（经验池 / 代理池）—— dsh-tauri-ui 版本 ──────────────────
+// 本项目实际渲染设置面板的是 dsh-tauri-ui 插件（Tailwind 实现，占用 shell.overlay），
+// 不是内核的 ui-settings-general 外壳；它自带一张 section id → 图标的映射表，未知 id
+// 一律落兜底齿轮（`fn[e.id] ?? I`）。要给两个自建 section 图标，只能往这张表里补条目。
+// 字形与参考项目 BoBo-Handyman 的 SettingsRoot.tsx 补丁一致：
+//   proxy-pool → IconApiOutlineMedium，experience-pool → IconSparkleMedium
+// （沿用内核 ui-primitives 的原始 path 数据，视觉与参考项目相同。）
+const MAP_ICON_API_PATHS = ['M3 4L7 8L3 12', 'M9 12H13']
+const MAP_ICON_SPARKLE_PATHS = [
+  'M5.875 3C5.875 6.33333 7.54167 8 10.875 8C7.54167 8 5.875 9.66667 5.875 13C5.875 9.66667 4.20833 8 0.875 8C4.20833 8 5.875 6.33333 5.875 3Z',
+  'M12.375 1.55823C12.375 3.39156 13.2917 4.30823 15.125 4.30823C13.2917 4.30823 12.375 5.22489 12.375 7.05823C12.375 5.22489 11.4583 4.30823 9.625 4.30823C11.4583 4.30823 12.375 3.39156 12.375 1.55823Z',
+  'M12.375 10.4418C12.375 11.7751 13.0417 12.4418 14.375 12.4418C13.0417 12.4418 12.375 13.1084 12.375 14.4418C12.375 13.1084 11.7083 12.4418 10.375 12.4418C11.7083 12.4418 12.375 11.7751 12.375 10.4418Z',
+]
+/** 生成该 bundle 风格的图标组件表达式（形如 `e=>_.createElement(...)`）。 */
+// 注意：该 bundle 的模块体整体位于一个模板字符串内（内部反引号全部写成 \`），
+// 因此插入的代码只能用双引号字符串，且不得出现 `${` —— 否则会截断外层模板串。
+function mapIconExpr(paths) {
+  const body = paths
+    .map((d) => '_.createElement("path",{d:"' + d + '",stroke:"currentColor",fill:"none"})')
+    .join(',')
+  return 'e=>_.createElement("svg",Object.assign({xmlns:"http://www.w3.org/2000/svg",width:16,height:16,'
+    + 'viewBox:"0 0 16 16",fill:"none","aria-hidden":"true"},e),' + body + ')'
+}
+const SETTINGS_NAV_MAP_ANCHOR = ',"better-sidebar":yt}'
+const SETTINGS_NAV_MAP_PATCHED = ',"better-sidebar":yt,"proxy-pool":' + mapIconExpr(MAP_ICON_API_PATHS)
+  + ',"experience-pool":' + mapIconExpr(MAP_ICON_SPARKLE_PATHS) + '}'
+
 const root = process.argv[2]
   ?? join(process.env.APPDATA ?? '', 'dsh-tauri', 'dependencies', 'dsh')
-
 if (!existsSync(root)) {
   console.error(`[brand-patch] 内核根不存在：${root}`)
   process.exit(1)
@@ -152,5 +197,59 @@ for (const [rel, pairs] of KERNEL_COPY) {
     return out
   })
 }
+
+patch('node_modules/@deepseek-ai/dsh-client-ui-settings-general/lib/client.js', (s) => {
+  if (s.includes('id === "proxy-pool"') || s.includes('id === "experience-pool"')) return null
+  if (!s.includes(NAV_ICON_FALLBACK)) return null
+  return s.replace(NAV_ICON_FALLBACK, NAV_ICON_BRANCHES + NAV_ICON_FALLBACK)
+})
+
+// ── 设置面板导航图标（经验池 / 代理池）—— dsh-tauri-ui 版本 ──────────────────
+// 该插件被 profile 以 link: 引用（来源通常是桌面端的 resources/node_modules），
+// 因此按 profile 的 package.json 解析真实目录，不写死路径，换机/换目录都能命中。
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const profilePkgPath = join(projectRoot, '.dsh', 'profiles', 'web', 'package.json')
+
+/** 解析 profile 里 link: 的插件包目录（找不到返回空数组，逐个尝试）。 */
+function resolveLinkedPackage(name) {
+  const candidates = []
+  if (existsSync(profilePkgPath)) {
+    try {
+      const pkg = JSON.parse(readFileSync(profilePkgPath, 'utf8'))
+      const spec = pkg.dependencies?.[name]
+      if (typeof spec === 'string' && spec.startsWith('link:')) {
+        const target = spec.slice(5)
+        candidates.push(resolve(profilePkgPath, '..', target), resolve(target))
+      }
+    } catch {
+      // profile package.json 读坏时退回 node_modules 解析
+    }
+  }
+  candidates.push(join(projectRoot, '.dsh', 'profiles', 'web', 'node_modules', name))
+  candidates.push(join(root, 'node_modules', name))
+  return candidates
+}
+
+// 定位并给 dsh-tauri-ui 的 section→图标映射表补上两个自建 section 的图标。
+let navMapPatched = false
+for (const dir of resolveLinkedPackage('dsh-tauri-ui')) {
+  const target = join(dir, 'dist', 'client.cjs')
+  if (!existsSync(target)) continue
+  const source = readFileSync(target, 'utf8')
+  if (source.includes('"proxy-pool":')) {
+    console.log(`[brand-patch] skip (already): ${target}`)
+    navMapPatched = true
+    break
+  }
+  if (source.includes(SETTINGS_NAV_MAP_ANCHOR)) {
+    writeFileSync(target, source.replace(SETTINGS_NAV_MAP_ANCHOR, SETTINGS_NAV_MAP_PATCHED))
+    console.log(`[brand-patch] patched: ${target}`)
+    navMapPatched = true
+  } else {
+    console.log(`[brand-patch] skip (anchor): ${target}`)
+  }
+  break
+}
+if (!navMapPatched) console.log('[brand-patch] skip (missing): dsh-tauri-ui/dist/client.cjs（设置面板导航图标未打）')
 
 console.log('[brand-patch] done')

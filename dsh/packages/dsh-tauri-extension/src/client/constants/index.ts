@@ -33,3 +33,23 @@ export const SOURCE_LOCALE_KEYS: Readonly<Record<string, LocaleKey>> = {
   'bundled': 'sourceBundled',
   'custom': 'sourceCustom',
 }
+
+export const MARKET_SOURCE_LOCALE_KEYS: Readonly<Record<string, LocaleKey>> = {
+  clawhub: 'skillMarketSourceClawhub',
+  skillhub: 'skillMarketSourceSkillhub',
+}
+
+export const MARKET_SOURCE_STATUS_LOCALE_KEYS: Readonly<Record<string, LocaleKey>> = {
+  ok: 'skillMarketStatusOk',
+  cached: 'skillMarketStatusCached',
+  degraded: 'skillMarketStatusDegraded',
+  failed: 'skillMarketStatusFailed',
+}
+
+export const MARKET_NOT_INSTALLABLE_LOCALE_KEYS: Readonly<Record<string, LocaleKey>> = {
+  'invalid-name': 'skillMarketReasonInvalidName',
+  'name-conflict': 'skillMarketReasonNameConflict',
+  'empty-file-list': 'skillMarketReasonEmptyFileList',
+  'too-many-files': 'skillMarketReasonTooManyFiles',
+  'file-too-large': 'skillMarketReasonFileTooLarge',
+}

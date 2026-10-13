@@ -9,6 +9,7 @@ import { MarkdownPreview } from '../components/markdown'
 import { IMPORT_REFRESH_DELAYS_MS, SKILL_REFRESH_INTERVAL_MS, SKILL_REFRESH_TIMEOUT_MS, SOURCE_LOCALE_KEYS } from '../constants'
 import { useTimers } from '../hooks/use-timers'
 import { failText } from './outcome.utils'
+import { SkillMarketView } from './skill-market-view'
 import { normalizeRepository, policyTag } from './skills-tab.utils'
 
 export interface SkillEditorState {
@@ -40,6 +41,7 @@ export function SkillsTab({ t, createSkill }: SkillsTabProps): ReactElement {
   const [query, setQuery] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [importOpen, setImportOpen] = useState(false)
+  const [view, setView] = useState<'local' | 'market'>('local')
   const [repositoryUrl, setRepositoryUrl] = useState('')
   const { mounted, later } = useTimers()
 
@@ -179,6 +181,11 @@ export function SkillsTab({ t, createSkill }: SkillsTabProps): ReactElement {
     }
   }
 
+  const onMarketInstalled = (replaced: boolean, dirName: string): void => {
+    setToast({ text: t(replaced ? 'skillMarketUpdated' : 'skillMarketInstalled'), seq: Date.now() })
+    refreshUntil(rows => rows.some(row => row.name === dirName))
+  }
+
   const doImport = async (): Promise<void> => {
     const url = normalizeRepository(repositoryUrl)
     if (url === null) {
@@ -220,23 +227,13 @@ export function SkillsTab({ t, createSkill }: SkillsTabProps): ReactElement {
         <h3>{t('skillsTitle')}</h3>
         <span className="flex-1" />
         <Button variant="ghost" size="sm" onClick={() => void doOpen({ target: 'user-skills' })}>{t('openUserSkills')}</Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={busy}
-          onClick={() => {
-            setFormError(null)
-            setImportOpen(true)
-          }}
-        >
-          {t('importRepository')}
-        </Button>
+        <Button variant="ghost" size="sm" disabled={busy} onClick={() => setImportOpen(true)}>{t('importRepository')}</Button>
         <Button variant="primary" size="sm" disabled={busy} onClick={() => void doCreate()}>{t('newSkill')}</Button>
       </div>
       <Text tone="tertiary">{t('skillsIntro')}</Text>
       <div className="flex items-center gap-[7px] px-[2px] mt-[2px] [&_h3]:m-0 [&_h3]:text-[13px] [&_h3]:leading-[20px] [&_h3]:font-semibold">
         <h3>{t('skillsTab')}</h3>
-        {skills && (
+        {view === 'local' && skills && (
           <span className="text-[12px] leading-[18px] text-tertiary tabular-nums">
             {filtered.length}
             /
@@ -244,13 +241,32 @@ export function SkillsTab({ t, createSkill }: SkillsTabProps): ReactElement {
           </span>
         )}
         <span className="flex-1" />
-        <Input className="w-[200px] max-[680px]:w-[140px]" type="search" placeholder={t('searchSkills')} aria-label={t('searchSkills')} value={query} onChange={event => setQuery(event.target.value)} />
-        <Action variant="toolbar" icon={<Icon as={ArrowRotateRight} />} aria-label={t('refresh')} title={t('refresh')} disabled={busy} onClick={() => void doRefresh()} />
+        {view === 'local' && (
+          <>
+            <Input className="w-[200px] max-[680px]:w-[140px]" type="search" placeholder={t('searchSkills')} aria-label={t('searchSkills')} value={query} onChange={event => setQuery(event.target.value)} />
+            <Action variant="toolbar" icon={<Icon as={ArrowRotateRight} />} aria-label={t('refresh')} title={t('refresh')} disabled={busy} onClick={() => void doRefresh()} />
+          </>
+        )}
       </div>
-      {sources.length > 1 && <div className="flex items-center gap-[6px] flex-wrap" role="group" aria-label={t('source')}>{[{ id: 'all', label: t('filterAll') }, ...sources.map(source => ({ id: source, label: t(SOURCE_LOCALE_KEYS[source] ?? 'sourceCustom') }))].map(chip => <Pill key={chip.id} active={sourceFilter === chip.id} onClick={() => setSourceFilter(chip.id)}>{chip.label}</Pill>)}</div>}
-      {skills === null && <Text size="sm" tone="tertiary">{t('loading')}</Text>}
-      {skills !== null && filtered.length === 0 && <Text size="sm" tone="tertiary">{skills.length === 0 ? t('emptySkills') : t('noMatch')}</Text>}
-      {filtered.length > 0 && (
+      <div className="flex items-center gap-[6px] flex-wrap" role="group" aria-label={t('source')}>
+        {[{ id: 'all', label: t('filterAll') }, ...sources.map(source => ({ id: source, label: t(SOURCE_LOCALE_KEYS[source] ?? 'sourceCustom') }))].map(chip => (
+          <Pill
+            key={chip.id}
+            active={view === 'local' && sourceFilter === chip.id}
+            onClick={() => {
+              setView('local')
+              setSourceFilter(chip.id)
+            }}
+          >
+            {chip.label}
+          </Pill>
+        ))}
+        <Pill active={view === 'market'} onClick={() => setView('market')}>{t('skillMarketView')}</Pill>
+      </div>
+      {view === 'market' && <SkillMarketView t={t} onInstalled={onMarketInstalled} />}
+      {view === 'local' && skills === null && <Text size="sm" tone="tertiary">{t('loading')}</Text>}
+      {view === 'local' && skills !== null && filtered.length === 0 && <Text size="sm" tone="tertiary">{skills.length === 0 ? t('emptySkills') : t('noMatch')}</Text>}
+      {view === 'local' && filtered.length > 0 && (
         <Card.List className="grid grid-cols-[repeat(2,minmax(0,1fr))] items-stretch gap-[10px] max-[680px]:grid-cols-[minmax(0,1fr)]">
           {filtered.map((skill) => {
             const tag = policyTag(skill)

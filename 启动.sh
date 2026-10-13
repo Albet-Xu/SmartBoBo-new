@@ -26,6 +26,34 @@ node "$ROOT/scripts/apply-brand-patch.mjs" || echo "[WARN] brand patch failed; c
 export DSH_HOME="$ROOT/.dsh"
 mkdir -p "$DSH_HOME"
 
+# Preset-relative root: market presets resolve their MCP rows as
+# '../.venv/Scripts/python.exe' + '../scripts/*.py' against this cwd, so it must
+# be the 'dsh' subfolder for '../' to land on the repo root.
+# BOBO_ROOT is re-exported into each MCP child as a !!js expression; when it is
+# unset the memory servers cannot locate skills/*/memory_store.py.
+export BOBO_ROOT="$ROOT"
+export BOBO_DSH_ROOT="$ROOT/dsh"
+
+# Refresh global env manifest (idempotent; no downloads, no process start).
+# Writes dbx-runtime/env-manifest.json used by the bobo-env skill.
+if [ -x "$ROOT/.venv/bin/python" ]; then
+  echo "[INFO] Refreshing env manifest..."
+  "$ROOT/.venv/bin/python" "$ROOT/scripts/gen_env_manifest.py" --root "$ROOT" \
+    || echo "[WARN] env manifest refresh failed; continuing."
+else
+  echo "[WARN] .venv not found; skipping env manifest refresh."
+fi
+
+# Seed/sync the DBX built-in AI config row (bridge endpoint; idempotent).
+if [ -x "$ROOT/.venv/bin/python" ]; then
+  echo "[INFO] Seeding DBX AI bridge config..."
+  "$ROOT/.venv/bin/python" "$ROOT/dbx/scripts/dbx_ai_seed.py" \
+    --dbx-db "$ROOT/dbx-runtime/data/dbx.db" \
+    || echo "[WARN] DBX AI seeding failed; continuing."
+else
+  echo "[WARN] .venv not found; skipping DBX AI config seeding."
+fi
+
 echo "[INFO] DSH_HOME = $DSH_HOME"
 echo "[INFO] Kernel    = $KERNEL"
 echo "[INFO] Serving   = http://127.0.0.1:7075 (browser opens automatically)"

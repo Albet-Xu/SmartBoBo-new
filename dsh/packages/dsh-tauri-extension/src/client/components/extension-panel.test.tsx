@@ -23,6 +23,7 @@ vi.mock('./skills-tab', () => ({
   ),
 }))
 vi.mock('./mcp-tab', () => ({ McpTab: () => <section>mcp-content</section> }))
+vi.mock('./repo-tab', () => ({ RepoTab: ({ ns }: { ns: string }) => <section>{`repo-${ns}-content`}</section> }))
 
 afterEach(() => {
   cleanup()
@@ -35,7 +36,7 @@ describe('extension panel composition', () => {
     const market: MarketFace = { version: 1, render, setSettingsVisible: vi.fn(), settingsVisible: () => false }
     const markup = renderToStaticMarkup(<ExtensionPanel plugins={<section>official-plugins-content</section>} market={market} createSkill={async () => {}} />)
     expect(markup).toContain('data-active="plugins"')
-    expect(markup).toContain('<button type="button">plugins</button><button type="button">market</button><button type="button">skills</button><button type="button">mcp</button>')
+    expect(markup).toContain('<button type="button">plugins</button><button type="button">market</button><button type="button">skills</button><button type="button">mcp</button><button type="button">presets</button><button type="button">tools</button>')
     expect(markup).toContain('official-plugins-content')
     expect(render).not.toHaveBeenCalled()
     expect(markup).not.toContain('skills-content')
@@ -45,7 +46,7 @@ describe('extension panel composition', () => {
   it('renders plugins without the optional market service', () => {
     const markup = renderToStaticMarkup(<ExtensionPanel plugins={<section>official-plugins-content</section>} market={undefined} createSkill={async () => {}} />)
     expect(markup).toContain('data-active="plugins"')
-    expect(markup).toContain('<button type="button">plugins</button><button type="button">skills</button><button type="button">mcp</button>')
+    expect(markup).toContain('<button type="button">plugins</button><button type="button">skills</button><button type="button">mcp</button><button type="button">presets</button><button type="button">tools</button>')
     expect(markup).toContain('official-plugins-content')
   })
 
@@ -54,7 +55,7 @@ describe('extension panel composition', () => {
     const market: MarketFace = { version: 1, render, setSettingsVisible: vi.fn(), settingsVisible: () => false }
     const markup = renderToStaticMarkup(<ExtensionPanel market={market} createSkill={async () => {}} />)
     expect(markup).toContain('data-active="market"')
-    expect(markup).toContain('<button type="button">market</button><button type="button">skills</button><button type="button">mcp</button>')
+    expect(markup).toContain('<button type="button">market</button><button type="button">skills</button><button type="button">mcp</button><button type="button">presets</button><button type="button">tools</button>')
     expect(render).toHaveBeenCalledExactlyOnceWith({ preferredSubsectionId: 'installed' })
     expect(markup).toContain('installed-market-content')
     expect(markup).not.toContain('skills-content')
@@ -64,10 +65,20 @@ describe('extension panel composition', () => {
   it('renders skills when both optional pages are unavailable', () => {
     const markup = renderToStaticMarkup(<ExtensionPanel market={undefined} createSkill={async () => {}} />)
     expect(markup).toContain('data-active="skills"')
-    expect(markup).toContain('<button type="button">skills</button><button type="button">mcp</button>')
+    expect(markup).toContain('<button type="button">skills</button><button type="button">mcp</button><button type="button">presets</button><button type="button">tools</button>')
     expect(markup).toContain('skills-content')
     expect(markup).not.toContain('installed-market-content')
     expect(markup).not.toContain('mcp-content')
+  })
+
+  it('mounts the presets and tools market tabs on demand', () => {
+    const view = render(<ExtensionPanel market={undefined} createSkill={async () => {}} />)
+    expect(view.queryByText('repo-presets-content')).toBeNull()
+    fireEvent.click(view.getByRole('button', { name: 'presets' }))
+    expect(view.getByText('repo-presets-content').closest('[role="tabpanel"]')?.hasAttribute('hidden')).toBe(false)
+    fireEvent.click(view.getByRole('button', { name: 'tools' }))
+    expect(view.getByText('repo-tools-content').closest('[role="tabpanel"]')?.hasAttribute('hidden')).toBe(false)
+    expect(view.getByText('repo-presets-content').closest('[role="tabpanel"]')?.hasAttribute('hidden')).toBe(true)
   })
 
   it('unmounts official plugins on tab switches while preserving the skill draft', () => {

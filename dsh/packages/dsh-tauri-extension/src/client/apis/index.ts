@@ -102,3 +102,53 @@ export function deleteRoots(body: Types.DeleteApiTauriExtensionRootsBody, option
 export function postHostRestart(options?: FetchOptions) {
   return ofetch<Types.PostApiTauriExtensionHostRestartResponse>("/api/tauri/extension/host/restart", { method: "post", ...options });
 }
+
+/** @method get */
+export function getRepoList(params?: Types.GetApiTauriExtensionRepoListQuery, options?: FetchOptions) {
+  return ofetch<Types.GetApiTauriExtensionRepoListResponse>("/api/tauri/extension/repo/list", { method: "get", params, ...options });
+}
+
+/** @method get */
+export function getRepoDetail(params?: Types.GetApiTauriExtensionRepoDetailQuery, options?: FetchOptions) {
+  return ofetch<Types.GetApiTauriExtensionRepoDetailResponse>("/api/tauri/extension/repo/detail", { method: "get", params, ...options });
+}
+
+/** @method post */
+export function postRepoInstall(body: Types.PostApiTauriExtensionRepoInstallBody, options?: FetchOptions) {
+  return ofetch<Types.PostApiTauriExtensionRepoInstallResponse>("/api/tauri/extension/repo/install", { method: "post", body, ...options });
+}
+
+/** @method post */
+export function postRepoUninstall(body: Types.PostApiTauriExtensionRepoUninstallBody, options?: FetchOptions) {
+  return ofetch<Types.PostApiTauriExtensionRepoUninstallResponse>("/api/tauri/extension/repo/uninstall", { method: "post", body, ...options });
+}
+
+/** @method post */
+export function postRepoScope(body: Types.PostApiTauriExtensionRepoScopeBody, options?: FetchOptions) {
+  return ofetch<Types.PostApiTauriExtensionRepoScopeResponse>("/api/tauri/extension/repo/scope", { method: "post", body, ...options });
+}
+
+/** @method post */
+export function postRepoCategory(body: Types.PostApiTauriExtensionRepoCategoryBody, options?: FetchOptions) {
+  return ofetch<Types.PostApiTauriExtensionRepoCategoryResponse>("/api/tauri/extension/repo/category", { method: "post", body, ...options });
+}
+
+/** @method get */
+export function getMarketSearch(params?: Types.GetApiTauriExtensionMarketSearchQuery, options?: FetchOptions) {
+  return ofetch<Types.GetApiTauriExtensionMarketSearchResponse>("/api/tauri/extension/market/search", { method: "get", params, ...options });
+}
+
+/** @method get */
+export function getMarketDetail(params?: Types.GetApiTauriExtensionMarketDetailQuery, options?: FetchOptions) {
+  return ofetch<Types.GetApiTauriExtensionMarketDetailResponse>("/api/tauri/extension/market/detail", { method: "get", params, ...options });
+}
+
+/** @method get */
+export function getMarketFile(params?: Types.GetApiTauriExtensionMarketFileQuery, options?: FetchOptions) {
+  return ofetch<Types.GetApiTauriExtensionMarketFileResponse>("/api/tauri/extension/market/file", { method: "get", params, ...options });
+}
+
+/** @method post */
+export function postMarketInstall(body: Types.PostApiTauriExtensionMarketInstallBody, options?: FetchOptions) {
+  return ofetch<Types.PostApiTauriExtensionMarketInstallResponse>("/api/tauri/extension/market/install", { method: "post", body, ...options });
+}

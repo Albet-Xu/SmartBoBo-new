@@ -6,7 +6,7 @@ import { getMcp, getSkills } from '../apis'
 import { McpTab } from './mcp-tab'
 import { SkillsTab } from './skills-tab'
 
-vi.mock('../apis', () => ({ getMcp: vi.fn(), getSkills: vi.fn() }))
+vi.mock('../apis', () => ({ getMarketDetail: vi.fn(), getMarketFile: vi.fn(), getMarketSearch: vi.fn(), getMcp: vi.fn(), getSkills: vi.fn(), postMarketInstall: vi.fn() }))
 vi.mock('dsh-tauri/client', () => ({ orderBy: () => [], uniq: () => [], compact: () => [] }))
 vi.mock('../hooks/use-timers', () => ({ useTimers: () => ({ mounted: { current: true }, later: vi.fn() }) }))
 vi.mock('../service/restart', () => ({ restartHost: vi.fn() }))
@@ -23,6 +23,7 @@ vi.mock('dsh-tauri-ui/client', () => {
     Card: Content,
     Checkbox: Empty,
     Field: Empty,
+    fileSizeText: () => '',
     GraduationCap: Empty,
     Icon: Empty,
     Input: Empty,

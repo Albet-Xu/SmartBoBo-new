@@ -40,6 +40,16 @@ const EXPECTED_ROUTES: ReadonlyArray<readonly [string, string]> = [
   ['POST', `${P}/roots`],
   ['DELETE', `${P}/roots`],
   ['POST', `${P}/host/restart`],
+  ['GET', `${P}/repo/list`],
+  ['GET', `${P}/repo/detail`],
+  ['POST', `${P}/repo/install`],
+  ['POST', `${P}/repo/uninstall`],
+  ['POST', `${P}/repo/scope`],
+  ['POST', `${P}/repo/category`],
+  ['GET', `${P}/market/search`],
+  ['GET', `${P}/market/detail`],
+  ['GET', `${P}/market/file`],
+  ['POST', `${P}/market/install`],
 ]
 
 const EXPECTED_PATHS: readonly string[] = [...new Set(EXPECTED_ROUTES.map(([, path]) => path))]

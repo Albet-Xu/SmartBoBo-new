@@ -140,7 +140,7 @@ def reverse_memory_save(
         negative_lessons: 教训总结（负向），如 "不要只改 UA，必须同步处理 TLS 指纹"
         result: SUCCESS / FAIL / PARTIAL_SUCCESS
         confidence: 必填。置信度 1-5（1=偶然结果，5=多次验证可靠），只有【严格大于】2.0 才入库；一次跑通=2.0（会被丢弃），复现两次以上=2.5，跨时间稳定=3.5-5
-        tools_used: 使用过的工具（camoufox-debug / camoufox / AST / 抓包 等）
+        tools_used: 使用过的工具（cloak-debug / CDP / AST / 抓包 等）
         used_experience_ids: 本次参考过的历史经验 ID（用于后续反馈）
     """
     return store.save_experience({

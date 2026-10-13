@@ -121,13 +121,16 @@ export function stageOf(base, cfg = DEFAULT_CONFIG) {
   return 'S6'
 }
 
-/** 定位经验库数据目录（DSH_HOME / BOBO_ROOT / cwd 三级回退）。 */
+/** 定位经验库数据目录（DSH_HOME / BOBO_ROOT / cwd 三级回退；三池统一在 experience-pool/ 下）。 */
 export function dataDir(cwd, cfg = DEFAULT_CONFIG) {
   const cands = []
   const dsh = process.env.DSH_HOME
-  if (dsh) cands.push(join(dirname(dsh), cfg.dataDirName))
+  if (dsh) cands.push(join(dirname(dsh), 'experience-pool', cfg.dataDirName))
+  if (dsh) cands.push(join(dirname(dsh), cfg.dataDirName)) // 旧布局回退
   const root = process.env.BOBO_ROOT
+  if (root) cands.push(join(root, 'bobo-data', 'experience-pool', cfg.dataDirName))
   if (root) cands.push(join(root, 'bobo-data', cfg.dataDirName))
+  if (cwd) cands.push(join(cwd, 'bobo-data', 'experience-pool', cfg.dataDirName))
   if (cwd) cands.push(join(cwd, 'bobo-data', cfg.dataDirName))
   for (const c of cands) if (existsSync(c)) return c
   return null

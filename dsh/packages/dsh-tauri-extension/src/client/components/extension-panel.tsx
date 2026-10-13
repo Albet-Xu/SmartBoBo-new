@@ -5,6 +5,7 @@ import { useId, useState } from 'react'
 import { locale } from '../locales'
 import { resolveActiveTab } from './extension-panel.utils'
 import { McpTab } from './mcp-tab'
+import { RepoTab } from './repo-tab'
 import { SkillsTab } from './skills-tab'
 
 export interface ExtensionPanelProps {
@@ -30,6 +31,8 @@ export function ExtensionPanel({ createSkill, market, plugins }: ExtensionPanelP
       : [{ id: 'market', label: t('marketTab'), render: () => <>{marketFace.render({ preferredSubsectionId: 'installed' })}</> }]),
     { id: 'skills', label: t('skillsTab'), render: () => <SkillsTab t={t} createSkill={createSkill} /> },
     { id: 'mcp', label: t('mcpTab'), render: () => <McpTab t={t} /> },
+    { id: 'presets', label: t('presetsTab'), render: () => <RepoTab t={t} ns="presets" /> },
+    { id: 'tools', label: t('toolsTab'), render: () => <RepoTab t={t} ns="tools" /> },
   ]
   const initialId = rows[0]?.id ?? 'skills'
   const [requestedId, setRequestedId] = useState(initialId)

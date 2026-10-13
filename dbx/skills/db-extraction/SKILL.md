@@ -56,7 +56,7 @@ user-invocable: true
 6. **登记复用**：在 `{{cwd}}/<站点键>/extraction_scripts/index.md` 追加一行 `站点键 | 目标表 | source_format | 脚本名 | 去重键`。
 7. **批量采集与入库（采集与入库分离；只写目标表）**：
    - **批量来源**：用户输入里的一批 URL、一个 **URL 清单文件**（每行一个 URL）、或一个已抓好的 `{{cwd}}/<站点键>/data/` 目录；
-   - **采集（落数据）**：对清单/输入里的每个网址，优先运行匹配的 `{{cwd}}/<站点键>/crawl_script/` 逆向脚本，否则用 `crawl_fetch`（**唯一采集引擎是 camoufox**；采集服务不可达时由工具自动重启并重试一次），并带 **`outputFormat=<source_format>`**（与提取脚本 CONFIG.source_format 一致）与 **`saveDir=<工作区绝对路径>/<站点键>/data`**，同类型数据统一落 `{{cwd}}/<站点键>/data/`；
+   - **采集（落数据）**：对清单/输入里的每个网址，优先运行匹配的 `{{cwd}}/<站点键>/crawl_script/` 逆向脚本，否则用 `crawl_fetch`（**唯一采集引擎是 CloakBrowser（cloakserve）**；采集服务不可达时由工具自动重启并重试一次），并带 **`outputFormat=<source_format>`**（与提取脚本 CONFIG.source_format 一致）与 **`saveDir=<工作区绝对路径>/<站点键>/data`**，同类型数据统一落 `{{cwd}}/<站点键>/data/`；
    - **入库（调脚本）**：`python <脚本> --data {{cwd}}/<站点键>/data`（目录/通配/单文件都支持）或 `python <脚本> --urls <清单> --data-dir {{cwd}}/<站点键>/data`（URL 清单驱动，入库 <站点键>/data 下已抓文件），批量 UPSERT 目标表。
 8. **预览并入库（只写目标表，入库前有数据质量闸门）**：
    - 先 `python <脚本> --dry-run`：先输出**数据质量检查**（乱码 + 缺失），再输出待写入行。出现**乱码值**、

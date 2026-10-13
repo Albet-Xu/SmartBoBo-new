@@ -14,6 +14,10 @@ export default antfu({
     // 插件包内的 skills/ 随包分发、由技能作者维护，同样按技能资产对待。
     'skills',
     'packages/*/skills',
+    // 从 BoBo-Handyman 原样移植的市场核心（纯 Node ESM，只 import Node 内置模块）。
+    // 保持与上游逐字一致，将来同步只需 diff 一次；格式由上游决定，不参与本仓 lint 规约。
+    'packages/dsh-tauri-extension/src/host/service/repo/*.mjs',
+    'packages/dsh-tauri-extension/src/host/service/repo/market-core.d.mts',
     // vendored 第三方 crate（含其 README/permissions 产物）：格式由上游决定，
     // 只保留本仓对其的 patch 说明（PATCH.md 由人读，不参与 lint）
     'src-tauri/vendor',

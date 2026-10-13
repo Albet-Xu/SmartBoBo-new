@@ -209,7 +209,11 @@ class ExperienceStore:
             raise RuntimeError(
                 "无法定位 BoBo 数据目录：缺少 DSH_HOME（MCP 子进程环境被清洗且无打包布局可回退）。"
                 "请确认桌面壳注入 DSH_HOME，且 agent 预设的 env 转发块已随包。")
-        d = base / self.a.data_dir_name
+        # 三池数据统一收在 <数据根>/experience-pool/ 下；旧布局（<数据根>/<池名>）作回退
+        d = base / "experience-pool" / self.a.data_dir_name
+        legacy = base / self.a.data_dir_name
+        if not d.is_dir() and legacy.is_dir():
+            return legacy
         d.mkdir(parents=True, exist_ok=True)
         return d
 
@@ -279,11 +283,13 @@ class ExperienceStore:
     def pool_config(self) -> dict:
         """读数据根 experience-pool.json（三个经验池共享同一份）；读失败静默当作未配置。"""
         try:
-            p = self.data_dir().parent / self.POOL_CONFIG_FILENAME
-            if not p.is_file():
-                return {}
-            cfg = json.loads(p.read_text(encoding="utf-8"))
-            return cfg if isinstance(cfg, dict) else {}
+            d = self.data_dir()
+            for p in (d.parent / self.POOL_CONFIG_FILENAME,
+                      d.parent.parent / self.POOL_CONFIG_FILENAME):
+                if p.is_file():
+                    cfg = json.loads(p.read_text(encoding="utf-8"))
+                    return cfg if isinstance(cfg, dict) else {}
+            return {}
         except Exception:
             return {}
 
