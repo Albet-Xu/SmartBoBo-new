@@ -5,8 +5,11 @@
 # 故不做复制而直接指向内核 node_modules（Node 默认把软链接解析到真实路径）。
 # dsh 内核升级后重跑本脚本即可对齐版本。
 $ErrorActionPreference = 'Stop'
+$root = Split-Path -Parent $PSScriptRoot
+if ($env:BOBO_ROOT) { $root = $env:BOBO_ROOT }
 $kernel = Join-Path $env:APPDATA 'dsh-tauri\dependencies\dsh\node_modules'
-$dest = 'E:\SmartBoBo\bobo\node_modules'
+if ($env:BOBO_KERNEL_NM) { $kernel = $env:BOBO_KERNEL_NM }
+$dest = Join-Path $root 'bobo\node_modules'
 $pkgs = @(
   'zod',
   '@deepseek-ai\schemastery',

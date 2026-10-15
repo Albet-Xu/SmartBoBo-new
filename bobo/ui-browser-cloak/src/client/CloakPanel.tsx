@@ -25,7 +25,7 @@
  * from an event handler or an effect this component owns.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FormEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { ChangeEvent as ReactChangeEvent, CompositionEvent as ReactCompositionEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import {
   Button, IconBrowseOutlineMedium, IconCloseOutlineMedium, IconLinkOutlineRegular, IconRefreshOutlineRegular, IconSendOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -42,13 +42,14 @@ import css from './CloakPanel.module.css'
 export const COMMAND_URL = '/bobo-cloak/cmd'
 
 /**
- * Interval between two frame requests. This is the panel's frame rate, and the
- * whole cost of a mirror: every tick renders and JPEG-encodes the shared page
- * on the service side, so lowering it makes every open panel — and the agent's
- * own work against that page — busier. 180ms is roughly 5.5 frames per second.
+ * Interval between two frame requests. The service streams frames via CDP
+ * screencast (a frame arrives the moment the page changes and is cached;
+ * nothing new is rendered per poll), so this is now just the poll that picks
+ * the newest cached frame up — 50ms reads as live while a page scrolls, and a
+ * steady page costs almost nothing (`unchanged` replies carry no image).
  * Tune here; nothing else depends on the value.
  */
-const FRAME_INTERVAL_MS = 180
+const FRAME_INTERVAL_MS = 50
 
 /** Leading-edge throttle for pointer moves: the service only needs the newest position. */
 const MOVE_THROTTLE_MS = 50
@@ -63,8 +64,18 @@ const TABS_INTERVAL_MS = 1000
 /** Frame quality sent with every screenshot; lower means smaller frames and softer text. */
 const FRAME_QUALITY = 60
 
-/** One screenshot's budget: the service renders and encodes a JPEG inside it. */
+/** One frame request's budget: usually a cached-frame read, a live render only on the first frame. */
 const SCREENSHOT_TIMEOUT_MS = 30_000
+
+/** Settle time before a resize follow sends `panel_resize`: a drag fires continuously. */
+const RESIZE_DEBOUNCE_MS = 300
+
+/**
+ * The home/new-tab page: iTab's web edition, shown whenever the shared session
+ * has no page (first start, every tab closed) — a real browser's new-tab
+ * behaviour. Verified rendering in headless Cloak (search box, widgets).
+ */
+const PANEL_HOME_URL = 'https://web.itab.link/'
 
 /** Every other command's budget, `debug_navigate` included. */
 const COMMAND_TIMEOUT_MS = 15_000
@@ -320,6 +331,20 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const decoderRef = useRef<HTMLImageElement | null>(null)
   const sizeRef = useRef<PageSize | undefined>(undefined)
+  /** Last painted frame's sequence number: sent as `since`, so a steady page answers `unchanged` without an image. */
+  const lastSeqRef = useRef(0)
+  /** Reentrancy guard for the home navigation (probe and the frame loop can race it). */
+  const homeFlightRef = useRef(false)
+  /** The home navigation, reachable from effects declared before it exists. */
+  const goHomeRef = useRef<() => void>(() => {})
+  /** The invisible IME carrier (composition candidate window follows it). */
+  const imeInputRef = useRef<HTMLTextAreaElement | null>(null)
+  /** Serializes compose/commit: a commit must land after the last compose. */
+  const imeQueueRef = useRef<Promise<void>>(Promise.resolve())
+  /** The composition text last mirrored, so a repeated update is not re-sent. */
+  const lastComposeRef = useRef('')
+  /** Whether an IME composition is open on the carrier (onChange must not double-commit). */
+  const imeComposingRef = useRef(false)
   // The address box follows the page, except while the user is typing in it —
   // that state lives in a ref because the frame loop must read it without
   // restarting on every focus change.
@@ -394,7 +419,11 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
       setPhase('idle')
       return
     }
-    setPhase(result.body.has_page === true ? 'live' : 'nopage')
+    const hasPage = result.body.has_page === true
+    setPhase(hasPage ? 'live' : 'nopage')
+    // Service alive but nothing open: fall back to the home page, like a
+    // browser showing its new tab. The guard keeps probe + frame loop honest.
+    if (!hasPage) goHomeRef.current()
   }, [syncAddress, t])
 
   useEffect(() => {
@@ -423,7 +452,7 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
       inFlight = true
       try {
         const result = await send(
-          { op: 'screenshot', quality: FRAME_QUALITY, scale: 'css' },
+          { op: 'screenshot', quality: FRAME_QUALITY, scale: 'css', since: lastSeqRef.current },
           SCREENSHOT_TIMEOUT_MS,
           lifecycle.signal,
         )
@@ -434,16 +463,37 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
         if (canvas === null) return
         if (result.kind !== 'ok') {
           if (result.kind === 'failed' && result.reason.includes(NO_PAGE_REASON)) {
-            setFault(t('error.pageClosed'))
+            // The session page went away (a tab closed, the agent finished its
+            // session): a real browser falls back to a fresh new tab — so do we.
+            setFault(undefined)
             setPhase('nopage')
+            goHomeRef.current()
             return
           }
           setFault(failureText(t, result, 'error.frame'))
           return
         }
-        const data = asText(result.body.data)
+        const seq = asNumber(result.body.seq)
+        const url = asText(result.body.url)
+        const title = asText(result.body.title)
         const cssWidth = asNumber(result.body.css_width)
         const cssHeight = asNumber(result.body.css_height)
+        // Steady page: the service answered `unchanged` (no image — screencast
+        // only pushes a frame when the page actually changes). Keep the status
+        // line fresh and skip the paint entirely.
+        if (result.body.unchanged === true) {
+          if (seq !== null) lastSeqRef.current = seq
+          setFault(undefined)
+          if (cssWidth !== null && cssHeight !== null) {
+            setSize(current => current !== undefined && current.width === cssWidth && current.height === cssHeight
+              ? current
+              : { width: cssWidth, height: cssHeight })
+          }
+          setPage(current => current.url === url && current.title === title ? current : { url, title })
+          syncAddress(url)
+          return
+        }
+        const data = asText(result.body.data)
         if (data === '' || cssWidth === null || cssHeight === null) {
           setFault(t('error.frame'))
           return
@@ -474,8 +524,7 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
           setFault(t('error.frame'))
           return
         }
-        const url = asText(result.body.url)
-        const title = asText(result.body.title)
+        if (seq !== null) lastSeqRef.current = seq
         setFault(undefined)
         setSize(current => current !== undefined && current.width === cssWidth && current.height === cssHeight
           ? current
@@ -494,6 +543,43 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
       window.clearInterval(timer)
     }
   }, [phase, hidden, syncAddress, t])
+
+  /**
+   * Viewport follow: when the surface's own box changes (sidebar drag, window
+   * resize, the first mount), tell the service to resize the mirrored page's
+   * viewport to match — the page reflows and the mirror fills the surface 1:1.
+   * Debounced: a drag fires continuously and only the settled size is worth a
+   * reflow; a failed follow is silent (the next resize retries).
+   */
+  useEffect(() => {
+    if (phase !== 'live' || hidden) return undefined
+    const surface = surfaceRef.current
+    /* v8 ignore next -- the surface is mounted by the same render that sets this phase. */
+    if (surface === null) return undefined
+    let timer = 0
+    let lastWidth = 0
+    let lastHeight = 0
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[entries.length - 1]?.contentRect
+      if (rect === undefined) return
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        const width = Math.round(rect.width)
+        const height = Math.round(rect.height)
+        // Collapsing containers report 0×0 (tab switched away): not a real size.
+        if (width < 100 || height < 100) return
+        if (width === lastWidth && height === lastHeight) return
+        lastWidth = width
+        lastHeight = height
+        void send({ op: 'panel_resize', width, height }, COMMAND_TIMEOUT_MS).then(() => undefined)
+      }, RESIZE_DEBOUNCE_MS)
+    })
+    observer.observe(surface)
+    return () => {
+      window.clearTimeout(timer)
+      observer.disconnect()
+    }
+  }, [phase, hidden])
 
   /**
    * Map a viewport point onto the page's CSS coordinate space.
@@ -564,6 +650,71 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
     })
   }, [t])
 
+  /**
+   * Mirror one IME composition step into the remote page, strictly in order:
+   * a commit must reach the service after the last compose it finalizes, so
+   * every step awaits the previous one on a single promise chain.
+   * @param action - `compose` (buffer visible in the remote field) or `commit` (text lands).
+   * @param text - the composition buffer, or the final text for a commit.
+   * @param at - optional page CSS coordinates (composition cursor placement).
+   */
+  const queueIme = useCallback((
+    action: 'compose' | 'commit',
+    text: string,
+    at?: { readonly x: number; readonly y: number },
+  ): void => {
+    imeQueueRef.current = imeQueueRef.current.then(async () => {
+      const result = await send(
+        { op: 'ime', action, text, ...(at === undefined ? {} : { x: at.x, y: at.y }) },
+        COMMAND_TIMEOUT_MS,
+      )
+      if (result.kind === 'ok' || action === 'compose') return
+      setFault(failureText(t, result, 'error.request'))
+    })
+  }, [t])
+
+  /**
+   * Park the invisible IME carrier at the pointer: the system's candidate
+   * window follows this box, so composing appears next to the clicked field.
+   * @param clientX - viewport X of the pointer event.
+   * @param clientY - viewport Y of the pointer event.
+   */
+  const parkIme = useCallback((clientX: number, clientY: number): void => {
+    const surface = surfaceRef.current
+    const ime = imeInputRef.current
+    if (surface === null || ime === null) return
+    const rect = surface.getBoundingClientRect()
+    ime.style.left = `${Math.max(0, Math.round(clientX - rect.left))}px`
+    ime.style.top = `${Math.max(0, Math.round(clientY - rect.top))}px`
+  }, [])
+
+  const onImeCompositionStart = useCallback((): void => { imeComposingRef.current = true }, [])
+
+  const onImeCompositionUpdate = useCallback((event: ReactCompositionEvent<HTMLTextAreaElement>): void => {
+    const text = event.data ?? ''
+    if (text === lastComposeRef.current) return
+    lastComposeRef.current = text
+    queueIme('compose', text)
+  }, [queueIme])
+
+  const onImeCompositionEnd = useCallback((event: ReactCompositionEvent<HTMLTextAreaElement>): void => {
+    lastComposeRef.current = ''
+    imeComposingRef.current = false
+    const ime = imeInputRef.current
+    if (ime !== null) ime.value = ''
+    queueIme('commit', event.data ?? '')
+  }, [queueIme])
+
+  /** Text that arrived without a composition (voice/assistive input): land it at once. */
+  const onImeChange = useCallback((event: ReactChangeEvent<HTMLTextAreaElement>): void => {
+    if (imeComposingRef.current) return
+    const ime = event.currentTarget
+    const text = ime.value
+    if (text === '') return
+    ime.value = ''
+    queueIme('commit', text)
+  }, [queueIme])
+
   useEffect(() => {
     if (phase !== 'live') return undefined
     const surface = surfaceRef.current
@@ -618,6 +769,14 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
     // A navigation replaces the service's session page, so the strip's ids moved.
     void refreshTabs()
   }, [refreshTabs, t])
+
+  /** Open the home page in the shared session page; at most one flight at a time. */
+  const goHome = useCallback((): void => {
+    if (homeFlightRef.current) return
+    homeFlightRef.current = true
+    void navigate(PANEL_HOME_URL).finally(() => { homeFlightRef.current = false })
+  }, [navigate])
+  goHomeRef.current = goHome
 
   /**
    * Show another tab. The service switches its session page and the frame loop
@@ -685,6 +844,9 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
    * @param event - the surface's key event.
    */
   const onKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>): void => {
+    // IME composition in flight: the keystrokes belong to the input method,
+    // not to the page — mirroring them would shatter the pinyin buffer.
+    if (event.isComposing || event.keyCode === 229) return
     const chord = event.ctrlKey ? 'Control' : event.metaKey ? 'Meta' : undefined
     if (chord !== undefined) {
       if (event.key.length !== 1) return
@@ -801,12 +963,20 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
                 sendMouse('move', at)
               }}
               onPointerDown={(event: ReactPointerEvent<HTMLDivElement>) => {
-                event.currentTarget.focus()
+                // Focus lands on the invisible IME carrier, not the surface:
+                // only a real editable element can open an input-method session.
+                parkIme(event.clientX, event.clientY)
+                imeInputRef.current?.focus()
                 const at = pointAt(event.clientX, event.clientY)
                 if (at === undefined) return
                 sendMouse('down', at, { button: buttonName(event.button) })
               }}
               onPointerUp={(event: ReactPointerEvent<HTMLDivElement>) => {
+                // The browser's mousedown default action (focus the nearest
+                // focusable ancestor = this surface) runs AFTER the pointerdown
+                // handler, stealing focus back from the IME carrier. Re-focusing
+                // here — after every default action has run — sticks.
+                imeInputRef.current?.focus()
                 const at = pointAt(event.clientX, event.clientY)
                 if (at === undefined) return
                 sendMouse('up', at, { button: buttonName(event.button) })
@@ -825,6 +995,17 @@ export function CloakPanel({ t }: CloakPanelProps): ReactNode {
               onKeyDown={onKeyDown}
             >
               <canvas className={css.canvas} ref={canvasRef} aria-hidden />
+              {/* Invisible IME carrier: composition events here are mirrored
+                  into the remote page over CDP (panel_ime op). */}
+              <textarea
+                ref={imeInputRef}
+                className={css.imeInput}
+                aria-label={t('insert.placeholder')}
+                onCompositionStart={onImeCompositionStart}
+                onCompositionUpdate={onImeCompositionUpdate}
+                onCompositionEnd={onImeCompositionEnd}
+                onChange={onImeChange}
+              />
             </div>
           )
           : (

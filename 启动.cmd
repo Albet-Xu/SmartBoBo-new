@@ -23,8 +23,9 @@ rem  Usage: double-click this file, or run it in a terminal.
 rem ============================================================
 setlocal
 
-rem --- Ensure node is in PATH for double-click launches ---
-set "PATH=D:\Application\node.js;%PATH%"
+rem --- Ensure node is in PATH for double-click launches (only as fallback) ---
+where node >nul 2>nul
+if errorlevel 1 if exist "D:\Application\node.js\node.exe" set "PATH=D:\Application\node.js;%PATH%"
 
 rem --- Project root = this script's folder (strip trailing \) ---
 set "ROOT=%~dp0"

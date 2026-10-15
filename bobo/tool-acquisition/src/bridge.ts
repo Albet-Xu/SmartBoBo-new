@@ -46,8 +46,8 @@ const MAX_BODY_BYTES = 64 * 1024
  * outside what the mirror needs.
  */
 const FORWARDED_OPS = new Set([
-  'ping', 'panel_state', 'screenshot', 'mouse', 'key', 'reload', 'debug_navigate', 'debug_close',
-  'panel_pages', 'panel_select', 'panel_close',
+  'ping', 'panel_state', 'panel_resize', 'screenshot', 'mouse', 'key', 'ime', 'reload',
+  'debug_navigate', 'debug_close', 'panel_pages', 'panel_select', 'panel_close',
 ])
 
 /** Bridge config: the waits one command may spend, all in whole milliseconds. */

@@ -236,8 +236,52 @@ GET  /bobo-cloak/cmd        → 401（前缀路由匹配后拒方法/未鉴权�
 
 ### 8.5 遗留
 
-1. **面板 UI 未在浏览器里实点**（镜像画面/键鼠转发/handoff 守望）：协议层与路由层已验，
-   组件层需要人工开一次右栏「内置浏览器」标签页确认。下次启动 7075 后随手点验即可。
+1. ~~**面板 UI 未在浏览器里实点**（镜像画面/键鼠转发/handoff 守望）~~ → **已于 2026-10-13
+   实点通过**（Playwright 驱动真实会话逐项操作：镜像画面 / 导航 / 键鼠标转发 / handoff
+   协议轮询全 PASS，handoff 浮出需 agent 侧 `setPendingHandoff()` 触发未覆盖）。
+   点验方法与截图说明见 `03-内置浏览器无头启动操作指南.md` §6。
 2. `lib/tsconfig.tsbuildinfo` 里残留旧路径字符串——纯构建缓存，不影响运行。
 3. 参考项目 patch 里还有一行 `- id: ui-sidebar-browser / disabled: false`（重新启用上游
    自带浏览器标签，与自建面板并存）。本项目未迁移上游自带浏览器，此行**不需要**。
+4. **【严重·点验中实测】cloakserve 无法接管已在跑的同 profile 实例**：旧实例对外部
+   Chrome 的 `/json/version` 持续 502，launch 失败重试每次都 `_safe_rmtree(user_data_dir)`，
+   曾把 `cloak/data/__default__` 的 History/Login Data/Local Storage 删空并致原 Chrome
+   进程消失。修复建议（launch 失败跳过 rmtree + DevToolsActivePort adopt 复用）详见
+   `03` §8.2。
+5. 面板 `op:start` 只探到 browser_server 端口，不探 cloakserve/CDP——会「已连接」但画面
+   失败；面板 15s 命令超时 < 后端导航 120s 预算，慢启动时误报「操作未送达」。详见 `03` §8.3-8.4。
+6. **右栏输入网址会弹独立 Cloak 窗口**（本遗留由 `03` 文档跟进）：已于同日用
+   spawn 加 `--headless` 解决（两处 spawn 见 `03` §3），有头→无头的反检测影响见 `03` §8.1。
+
+### 8.6 启动进程窗口隐藏（pythonw 化，2026-10-13 追加）
+
+**问题**：用户反馈点「启动浏览器」时弹出 python.exe 终端窗口。诊断确认生产链路三层
+spawn 均带隐藏措施（node `windowsHide:true` ×2、Python `DETACHED_PROCESS`），按设计
+不应有可见窗口；实测完整链路（browser_server → cloakserve → Chrome）枚举可见窗口为零。
+弹窗来源判定为验证期间手工直启的服务残留（不带隐藏参数）或特定宿主下 `windowsHide`
+失效的防御缺口——按"绝不复现"原则做了彻底修复：
+
+```
+修改 bobo/tool-acquisition/src/browser-server.ts
+    新增 pythonwBin()：Windows 下把部署解释器换成同目录 pythonw.exe（GUI 子系统，
+    无控制台即无窗口；venv 无 pythonw 时回退 python.exe）。launch() 的 spawn 用它。
+    服务以 sys.executable 拉 cloakserve → 子链自动继承 pythonw，一层切换隐藏全链。
+重建 bobo/tool-acquisition/lib/*                tsdown（deployment chunk hash 更新，
+                                                 旧 deployment-*.js 已删）
+修改 cloak/plugin/service.js                    pythonBin 同样指向 pythonw.exe
+                                                （dsh-cloakbrowser 直拉 cloakserve 路径）
+修改 scripts/browser_server.py                  ensure_cloakserve 的 Popen creationflags
+                                                追加 CREATE_NO_WINDOW（0x08000000）双保险
+```
+
+**验收（2026-10-13 真实进程）**：
+
+```
+pythonw 链路拉起 browser_server(READY) → debug_navigate 200（6.4s，冷启动）
+  → screenshot 出帧 1904×818；进程链全部 pythonw（browser_server + cloakserve）
+  → 可见窗口枚举：(none)
+  → 回归 §5.6：taskkill /T browser_server 后 9333 cloakserve 存活、/ 应答 ok
+```
+
+注：pythonw 无控制台，脚本异常时无处打印——browser_server 的 stdout 本来就走 pipe
+（READY 契约）、cloakserve 日志走 `cloak/cloakserve.log`，可观测性不降级。

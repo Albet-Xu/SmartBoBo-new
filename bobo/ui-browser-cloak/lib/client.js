@@ -8,7 +8,7 @@ window.__ModuleLoader__.load({
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		let react_jsx_runtime = require("react/jsx-runtime");
 		//#region \0dsh-css:E:\BoBo-Handyman\dsh\packages\bobo\ui-browser-cloak\src\client\CloakPanel.module.css.mjs
-		const css = ".g69FgG_root{height:100%;min-height:0;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-base);flex-direction:column;flex:auto;display:flex}.g69FgG_toolbar{box-sizing:border-box;border-bottom:.5px solid var(--dsw-alias-border-l3);flex:none;align-items:center;gap:4px;height:38px;padding:5px 6px;display:flex}.g69FgG_tabs{box-sizing:border-box;border-bottom:.5px solid var(--dsw-alias-border-l3);scrollbar-width:thin;flex:none;align-items:center;gap:4px;max-width:100%;padding:5px 6px 4px;display:flex;overflow-x:auto}.g69FgG_tab,.g69FgG_tabActive{border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:6px;flex:none;align-items:center;max-width:148px;display:inline-flex}.g69FgG_tabActive{border-color:var(--dsw-alias-brand-primary-new-colorprimary-new-color);background:var(--dsw-alias-interactive-bg-hover)}.g69FgG_tabPick{min-width:0;height:24px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxxs-11);text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;background:0 0;border:0;flex:auto;padding:0 4px 0 8px;overflow:hidden}.g69FgG_tabActive .g69FgG_tabPick{color:var(--dsw-alias-label-primary)}.g69FgG_tabClose{width:20px;height:24px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:0;flex:none;justify-content:center;align-items:center;padding:0 4px 0 0;display:inline-flex}.g69FgG_tabClose:hover{color:var(--dsw-alias-label-primary)}.g69FgG_address,.g69FgG_insert{box-sizing:border-box;min-width:0;height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2);border-radius:6px;flex:auto;padding:0 9px}.g69FgG_address:focus,.g69FgG_insert:focus{outline:1px solid var(--dsw-alias-brand-primary-new-colorprimary-new-color);outline-offset:-1px}.g69FgG_tool{width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:0;border-radius:6px;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}.g69FgG_tool:hover:not(:disabled){color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.g69FgG_tool:disabled{color:var(--dsw-alias-label-tertiary);cursor:default}.g69FgG_status{min-width:0;font:var(--dsw-font-xxxs-11);border-bottom:.5px solid var(--dsw-alias-border-l3);flex:none;align-items:baseline;gap:6px;padding:4px 10px;display:flex}.g69FgG_phase{color:var(--dsw-alias-label-secondary);flex:none}.g69FgG_pageTitle{color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;flex:0 auto;overflow:hidden}.g69FgG_pageUrl{color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;flex:auto;overflow:hidden}.g69FgG_fault{color:var(--dsw-alias-state-error-primary);font:var(--dsw-font-xxxs-11);background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);flex:none;padding:6px 12px}.g69FgG_stage{flex:auto;justify-content:center;align-items:center;min-height:0;display:flex;overflow:hidden}.g69FgG_surface{touch-action:none;width:100%;height:100%;position:relative}.g69FgG_surface:focus-visible{outline:1px solid var(--dsw-alias-brand-primary-new-colorprimary-new-color);outline-offset:-1px}.g69FgG_canvas{object-fit:contain;background:var(--dsw-alias-bg-layer-1);width:100%;height:100%;display:block}.g69FgG_notice{text-align:center;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:24px;display:flex}.g69FgG_noticeText{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13);margin:0}.g69FgG_insertRow{flex:none;align-items:center;gap:4px;padding:5px 6px 0;display:flex}.g69FgG_hint{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-11);flex:none;margin:0;padding:4px 10px 6px}.g69FgG_titleIcon{flex:none;margin-right:4px}";
+		const css = ".g69FgG_root{height:100%;min-height:0;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-base);flex-direction:column;flex:auto;display:flex}.g69FgG_toolbar{box-sizing:border-box;border-bottom:.5px solid var(--dsw-alias-border-l3);flex:none;align-items:center;gap:4px;height:38px;padding:5px 6px;display:flex}.g69FgG_tabs{box-sizing:border-box;border-bottom:.5px solid var(--dsw-alias-border-l3);scrollbar-width:thin;flex:none;align-items:center;gap:4px;max-width:100%;padding:5px 6px 4px;display:flex;overflow-x:auto}.g69FgG_tab,.g69FgG_tabActive{border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:6px;flex:none;align-items:center;max-width:148px;display:inline-flex}.g69FgG_tabActive{border-color:var(--dsw-alias-brand-primary-new-colorprimary-new-color);background:var(--dsw-alias-interactive-bg-hover)}.g69FgG_tabPick{min-width:0;height:24px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxxs-11);text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;background:0 0;border:0;flex:auto;padding:0 4px 0 8px;overflow:hidden}.g69FgG_tabActive .g69FgG_tabPick{color:var(--dsw-alias-label-primary)}.g69FgG_tabClose{width:20px;height:24px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:0;flex:none;justify-content:center;align-items:center;padding:0 4px 0 0;display:inline-flex}.g69FgG_tabClose:hover{color:var(--dsw-alias-label-primary)}.g69FgG_address,.g69FgG_insert{box-sizing:border-box;min-width:0;height:28px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xxs-12);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2);border-radius:6px;flex:auto;padding:0 9px}.g69FgG_address:focus,.g69FgG_insert:focus{outline:1px solid var(--dsw-alias-brand-primary-new-colorprimary-new-color);outline-offset:-1px}.g69FgG_tool{width:28px;height:28px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:0;border-radius:6px;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}.g69FgG_tool:hover:not(:disabled){color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.g69FgG_tool:disabled{color:var(--dsw-alias-label-tertiary);cursor:default}.g69FgG_status{min-width:0;font:var(--dsw-font-xxxs-11);border-bottom:.5px solid var(--dsw-alias-border-l3);flex:none;align-items:baseline;gap:6px;padding:4px 10px;display:flex}.g69FgG_phase{color:var(--dsw-alias-label-secondary);flex:none}.g69FgG_pageTitle{color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;flex:0 auto;overflow:hidden}.g69FgG_pageUrl{color:var(--dsw-alias-label-tertiary);text-overflow:ellipsis;white-space:nowrap;flex:auto;overflow:hidden}.g69FgG_fault{color:var(--dsw-alias-state-error-primary);font:var(--dsw-font-xxxs-11);background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);flex:none;padding:6px 12px}.g69FgG_stage{flex:auto;justify-content:center;align-items:center;min-height:0;display:flex;overflow:hidden}.g69FgG_surface{touch-action:none;width:100%;height:100%;position:relative}.g69FgG_surface:focus-visible{outline:1px solid var(--dsw-alias-brand-primary-new-colorprimary-new-color);outline-offset:-1px}.g69FgG_canvas{object-fit:contain;background:var(--dsw-alias-bg-layer-1);width:100%;height:100%;display:block}.g69FgG_notice{text-align:center;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:24px;display:flex}.g69FgG_noticeText{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13);margin:0}.g69FgG_insertRow{flex:none;align-items:center;gap:4px;padding:5px 6px 0;display:flex}.g69FgG_hint{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-11);flex:none;margin:0;padding:4px 10px 6px}.g69FgG_titleIcon{flex:none;margin-right:4px}.g69FgG_imeInput{position:absolute;width:1px;height:1px;padding:0;border:none;opacity:0;resize:none;overflow:hidden;z-index:1;background:transparent;color:transparent;caret-color:transparent}";
 		const tagId = "bobo-browser-ui/CloakPanel.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -33,6 +33,7 @@ window.__ModuleLoader__.load({
 			"stage": "g69FgG_stage",
 			"status": "g69FgG_status",
 			"surface": "g69FgG_surface",
+			"imeInput": "g69FgG_imeInput",
 			"tab": "g69FgG_tab",
 			"tabActive": "g69FgG_tabActive",
 			"tabClose": "g69FgG_tabClose",
@@ -77,13 +78,14 @@ window.__ModuleLoader__.load({
 		*/
 		const COMMAND_URL = "/bobo-cloak/cmd";
 		/**
-		* Interval between two frame requests. This is the panel's frame rate, and the
-		* whole cost of a mirror: every tick renders and JPEG-encodes the shared page
-		* on the service side, so lowering it makes every open panel — and the agent's
-		* own work against that page — busier. 180ms is roughly 5.5 frames per second.
+		* Interval between two frame requests. The service streams frames via CDP
+		* screencast (a frame arrives the moment the page changes and is cached;
+		* nothing new is rendered per poll), so this is now just the poll that picks
+		* the newest cached frame up — 50ms reads as live while a page scrolls, and a
+		* steady page costs almost nothing (`unchanged` replies carry no image).
 		* Tune here; nothing else depends on the value.
 		*/
-		const FRAME_INTERVAL_MS = 180;
+		const FRAME_INTERVAL_MS = 50;
 		/** Leading-edge throttle for pointer moves: the service only needs the newest position. */
 		const MOVE_THROTTLE_MS = 50;
 		/**
@@ -94,8 +96,16 @@ window.__ModuleLoader__.load({
 		const TABS_INTERVAL_MS = 1e3;
 		/** Frame quality sent with every screenshot; lower means smaller frames and softer text. */
 		const FRAME_QUALITY = 60;
-		/** One screenshot's budget: the service renders and encodes a JPEG inside it. */
+		/** One frame request's budget: usually a cached-frame read, a live render only on the first frame. */
 		const SCREENSHOT_TIMEOUT_MS = 3e4;
+		/** Settle time before a resize follow sends `panel_resize`: a drag fires continuously. */
+		const RESIZE_DEBOUNCE_MS = 300;
+		/**
+		* The home/new-tab page: iTab's web edition, shown whenever the shared session
+		* has no page (first start, every tab closed) — a real browser's new-tab
+		* behaviour. Verified rendering in headless Cloak (search box, widgets).
+		*/
+		const PANEL_HOME_URL = "https://web.itab.link/";
 		/** Every other command's budget, `debug_navigate` included. */
 		const COMMAND_TIMEOUT_MS = 15e3;
 		/** Budget for `start`, which may launch a whole browser process. */
@@ -295,6 +305,20 @@ window.__ModuleLoader__.load({
 			const canvasRef = (0, react.useRef)(null);
 			const decoderRef = (0, react.useRef)(null);
 			const sizeRef = (0, react.useRef)(void 0);
+			/** Last painted frame's sequence number: sent as `since`, so a steady page answers `unchanged` without an image. */
+			const lastSeqRef = (0, react.useRef)(0);
+			/** Reentrancy guard for the home navigation (probe and the frame loop can race it). */
+			const homeFlightRef = (0, react.useRef)(false);
+			/** The home navigation, reachable from effects declared before it exists. */
+			const goHomeRef = (0, react.useRef)(() => {});
+			/** The invisible IME carrier (composition candidate window follows it). */
+			const imeInputRef = (0, react.useRef)(null);
+			/** Serializes compose/commit: a commit must land after the last compose. */
+			const imeQueueRef = (0, react.useRef)(Promise.resolve());
+			/** The composition text last mirrored, so a repeated update is not re-sent. */
+			const lastComposeRef = (0, react.useRef)("");
+			/** Whether an IME composition is open on the carrier (onChange must not double-commit). */
+			const imeComposingRef = (0, react.useRef)(false);
 			const editingRef = (0, react.useRef)(false);
 			const lastMoveRef = (0, react.useRef)(0);
 			const moveInFlightRef = (0, react.useRef)(false);
@@ -367,7 +391,9 @@ window.__ModuleLoader__.load({
 					setPhase("idle");
 					return;
 				}
-				setPhase(result.body.has_page === true ? "live" : "nopage");
+				const hasPage = result.body.has_page === true;
+				setPhase(hasPage ? "live" : "nopage");
+				if (!hasPage) goHomeRef.current();
 			}, [syncAddress, t]);
 			(0, react.useEffect)(() => {
 				const controller = new AbortController();
@@ -394,22 +420,43 @@ window.__ModuleLoader__.load({
 						const result = await send({
 							op: "screenshot",
 							quality: FRAME_QUALITY,
-							scale: "css"
+							scale: "css",
+							since: lastSeqRef.current
 						}, SCREENSHOT_TIMEOUT_MS, lifecycle.signal);
 						const canvas = canvasRef.current;
 						if (canvas === null) return;
 						if (result.kind !== "ok") {
 							if (result.kind === "failed" && result.reason.includes(NO_PAGE_REASON)) {
-								setFault(t("error.pageClosed"));
+								setFault(void 0);
 								setPhase("nopage");
+								goHomeRef.current();
 								return;
 							}
 							setFault(failureText(t, result, "error.frame"));
 							return;
 						}
-						const data = asText(result.body.data);
+						const seq = asNumber(result.body.seq);
+						const url = asText(result.body.url);
+						const title = asText(result.body.title);
 						const cssWidth = asNumber(result.body.css_width);
 						const cssHeight = asNumber(result.body.css_height);
+						if (result.body.unchanged === true) {
+							if (seq !== null) lastSeqRef.current = seq;
+							setFault(void 0);
+							if (cssWidth !== null && cssHeight !== null) {
+								setSize((current) => current !== void 0 && current.width === cssWidth && current.height === cssHeight ? current : {
+									width: cssWidth,
+									height: cssHeight
+								});
+							}
+							setPage((current) => current.url === url && current.title === title ? current : {
+								url,
+								title
+							});
+							syncAddress(url);
+							return;
+						}
+						const data = asText(result.body.data);
 						if (data === "" || cssWidth === null || cssHeight === null) {
 							setFault(t("error.frame"));
 							return;
@@ -434,8 +481,7 @@ window.__ModuleLoader__.load({
 							setFault(t("error.frame"));
 							return;
 						}
-						const url = asText(result.body.url);
-						const title = asText(result.body.title);
+						if (seq !== null) lastSeqRef.current = seq;
 						setFault(void 0);
 						setSize((current) => current !== void 0 && current.width === cssWidth && current.height === cssHeight ? current : {
 							width: cssWidth,
@@ -464,6 +510,40 @@ window.__ModuleLoader__.load({
 				syncAddress,
 				t
 			]);
+			/**
+			* Viewport follow: when the surface's own box changes (sidebar drag, window
+			* resize, the first mount), tell the service to resize the mirrored page's
+			* viewport to match — the page reflows and the mirror fills the surface 1:1.
+			* Debounced: a drag fires continuously and only the settled size is worth a
+			* reflow; a failed follow is silent (the next resize retries).
+			*/
+			(0, react.useEffect)(() => {
+				if (phase !== "live" || hidden) return void 0;
+				const surface = surfaceRef.current;
+				if (surface === null) return void 0;
+				let timer = 0;
+				let lastWidth = 0;
+				let lastHeight = 0;
+				const observer = new ResizeObserver((entries) => {
+					const rect = entries[entries.length - 1]?.contentRect;
+					if (rect === void 0) return;
+					window.clearTimeout(timer);
+					timer = window.setTimeout(() => {
+						const width = Math.round(rect.width);
+						const height = Math.round(rect.height);
+						if (width < 100 || height < 100) return;
+						if (width === lastWidth && height === lastHeight) return;
+						lastWidth = width;
+						lastHeight = height;
+						send({ op: "panel_resize", width, height }, COMMAND_TIMEOUT_MS).then(() => void 0);
+					}, RESIZE_DEBOUNCE_MS);
+				});
+				observer.observe(surface);
+				return () => {
+					window.clearTimeout(timer);
+					observer.disconnect();
+				};
+			}, [phase, hidden]);
 			/**
 			* Map a viewport point onto the page's CSS coordinate space.
 			*
@@ -529,6 +609,62 @@ window.__ModuleLoader__.load({
 					setFault(failureText(t, result, "error.request"));
 				});
 			}, [t]);
+			/**
+			* Mirror one IME composition step into the remote page, strictly in order:
+			* a commit must reach the service after the last compose it finalizes, so
+			* every step awaits the previous one on a single promise chain.
+			*/
+			const queueIme = (0, react.useCallback)((action, text, at) => {
+				imeQueueRef.current = imeQueueRef.current.then(async () => {
+					const result = await send({
+						op: "ime",
+						action,
+						text,
+						...at === void 0 ? {} : {
+							x: at.x,
+							y: at.y
+						}
+					}, COMMAND_TIMEOUT_MS);
+					if (result.kind === "ok" || action === "compose") return;
+					setFault(failureText(t, result, "error.request"));
+				});
+			}, [t]);
+			/**
+			* Park the invisible IME carrier at the pointer: the system's candidate
+			* window follows this box, so composing appears next to the clicked field.
+			*/
+			const parkIme = (0, react.useCallback)((clientX, clientY) => {
+				const surface = surfaceRef.current;
+				const ime = imeInputRef.current;
+				if (surface === null || ime === null) return;
+				const rect = surface.getBoundingClientRect();
+				ime.style.left = `${Math.max(0, Math.round(clientX - rect.left))}px`;
+				ime.style.top = `${Math.max(0, Math.round(clientY - rect.top))}px`;
+			}, []);
+			const onImeCompositionStart = (0, react.useCallback)(() => {
+				imeComposingRef.current = true;
+			}, []);
+			const onImeCompositionUpdate = (0, react.useCallback)((event) => {
+				const text = event.data ?? "";
+				if (text === lastComposeRef.current) return;
+				lastComposeRef.current = text;
+				queueIme("compose", text);
+			}, [queueIme]);
+			const onImeCompositionEnd = (0, react.useCallback)((event) => {
+				lastComposeRef.current = "";
+				imeComposingRef.current = false;
+				const ime = imeInputRef.current;
+				if (ime !== null) ime.value = "";
+				queueIme("commit", event.data ?? "");
+			}, [queueIme]);
+			const onImeChange = (0, react.useCallback)((event) => {
+				if (imeComposingRef.current) return;
+				const ime = event.currentTarget;
+				const text = ime.value;
+				if (text === "") return;
+				ime.value = "";
+				queueIme("commit", text);
+			}, [queueIme]);
 			(0, react.useEffect)(() => {
 				if (phase !== "live") return void 0;
 				const surface = surfaceRef.current;
@@ -587,6 +723,15 @@ window.__ModuleLoader__.load({
 				setPhase("live");
 				refreshTabs();
 			}, [refreshTabs, t]);
+			/** Open the home page in the shared session page; at most one flight at a time. */
+			const goHome = (0, react.useCallback)(() => {
+				if (homeFlightRef.current) return;
+				homeFlightRef.current = true;
+				navigate(PANEL_HOME_URL).finally(() => {
+					homeFlightRef.current = false;
+				});
+			}, [navigate]);
+			goHomeRef.current = goHome;
 			/**
 			* Show another tab. The service switches its session page and the frame loop
 			* picks the new page up on its next tick.
@@ -671,6 +816,7 @@ window.__ModuleLoader__.load({
 			* @param event - the surface's key event.
 			*/
 			const onKeyDown = (0, react.useCallback)((event) => {
+				if (event.isComposing || event.keyCode === 229) return;
 				const chord = event.ctrlKey ? "Control" : event.metaKey ? "Meta" : void 0;
 				if (chord !== void 0) {
 					if (event.key.length !== 1) return;
@@ -825,12 +971,14 @@ window.__ModuleLoader__.load({
 								sendMouse("move", at);
 							},
 							onPointerDown: (event) => {
-								event.currentTarget.focus();
+								parkIme(event.clientX, event.clientY);
+								imeInputRef.current?.focus();
 								const at = pointAt(event.clientX, event.clientY);
 								if (at === void 0) return;
 								sendMouse("down", at, { button: buttonName(event.button) });
 							},
 							onPointerUp: (event) => {
+								imeInputRef.current?.focus();
 								const at = pointAt(event.clientX, event.clientY);
 								if (at === void 0) return;
 								sendMouse("up", at, { button: buttonName(event.button) });
@@ -847,11 +995,22 @@ window.__ModuleLoader__.load({
 								sendMouse("contextmenu", at, { button: "right" });
 							},
 							onKeyDown,
-							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("canvas", {
-								className: CloakPanel_module_css_default.canvas,
-								ref: canvasRef,
-								"aria-hidden": true
-							})
+							children: [
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("canvas", {
+									className: CloakPanel_module_css_default.canvas,
+									ref: canvasRef,
+									"aria-hidden": true
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("textarea", {
+									ref: imeInputRef,
+									className: CloakPanel_module_css_default.imeInput,
+									"aria-label": t("insert.placeholder"),
+									onCompositionStart: onImeCompositionStart,
+									onCompositionUpdate: onImeCompositionUpdate,
+									onCompositionEnd: onImeCompositionEnd,
+									onChange: onImeChange
+								})
+							]
 						}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 							className: CloakPanel_module_css_default.notice,
 							children: phase === "idle" || phase === "starting" ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {

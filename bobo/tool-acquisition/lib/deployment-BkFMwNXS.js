@@ -1,8 +1,8 @@
 import { execFile, spawn } from "node:child_process";
+import { existsSync, mkdirSync } from "node:fs";
 import { createConnection } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { crc32 } from "node:zlib";
-import { existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 //#region src/browser-server.ts
@@ -44,6 +44,24 @@ const READY_PATTERN = /READY (\d+)/;
 */
 function deriveBrowserPort(root) {
 	return PORT_BASE + (crc32(Buffer.from(root)) >>> 0) % PORT_SPAN;
+}
+/**
+* The deployment interpreter as a GUI-subsystem host (`pythonw.exe` beside it).
+*
+* The long-lived browser service must never surface a console window, whatever
+* the spawning parent's console state is (`windowsHide` alone can fail under
+* some hosts). pythonw has no console at all, so no window can exist; its stdio
+* is the pipe pair the spawn below sets up, which behaves the same. Falls back
+* to the given interpreter when the venv has no pythonw (uv sync installs both).
+* The service reuses `sys.executable` to launch cloakserve, so that child
+* becomes pythonw too — one switch hides the whole chain.
+* @param bin - deployment pythonBin, e.g. `<venv>/Scripts/python.exe`.
+* @returns the pythonw path on Windows when present; the input elsewhere.
+*/
+function pythonwBin(bin) {
+	if (process.platform !== "win32" || !/python\.exe$/i.test(bin)) return bin;
+	const candidate = bin.replace(/python\.exe$/i, "pythonw.exe");
+	return existsSync(candidate) ? candidate : bin;
 }
 /**
 * Whether a browser service already answers on `port`.
@@ -212,7 +230,7 @@ var CloakBrowserService = class {
 			...proxy === void 0 ? [] : ["--proxy", proxy],
 			...derived > 0 ? ["--port", String(derived)] : []
 		];
-		const child = spawn(this.deployment.pythonBin, args, {
+		const child = spawn(pythonwBin(this.deployment.pythonBin), args, {
 			windowsHide: true,
 			stdio: [
 				"ignore",

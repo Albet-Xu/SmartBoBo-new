@@ -40,3 +40,6 @@ experience-pool.json
 data/proxy_failed.json
 # 闸门会话粘性状态（运行时生成）
 .dsh/bobo-session-state/
+
+# --- Windows 打包：整个 packaging 目录不上传（含脚本、产物、NSIS 工具链）---
+packaging/

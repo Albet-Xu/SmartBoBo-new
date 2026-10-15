@@ -1,4 +1,4 @@
-import { a as probeBrowserService, i as deriveBrowserPort, n as resolveDeployment, o as sendCommand, r as CloakBrowserService } from "./deployment-CuDxLDrD.js";
+import { a as probeBrowserService, i as deriveBrowserPort, n as resolveDeployment, o as sendCommand, r as CloakBrowserService } from "./deployment-BkFMwNXS.js";
 import { n as readPendingHandoff } from "./handoff-state-CN1nXsWI.js";
 import z from "@deepseek-ai/schemastery";
 
@@ -23,9 +23,11 @@ const MAX_BODY_BYTES = 64 * 1024;
 const FORWARDED_OPS = new Set([
 	"ping",
 	"panel_state",
+	"panel_resize",
 	"screenshot",
 	"mouse",
 	"key",
+	"ime",
 	"reload",
 	"debug_navigate",
 	"debug_close",

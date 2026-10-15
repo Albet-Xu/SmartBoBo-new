@@ -14,9 +14,13 @@ export function cloakRuntime(config = {}) {
   const projectRoot = path.resolve(root, '..')
   const port = Number(config.port) > 0 ? Number(config.port) : 9333
   const dataDir = config.dataDir ? path.resolve(config.dataDir) : path.join(root, 'data')
+  /** Chrome 窗口尺寸（W,H）：headless 下即页面视口；与 browser_server.py 的默认保持一致。 */
+  const windowSize = /^[0-9]+,[0-9]+$/.test(String(config.windowSize || '')) ? String(config.windowSize) : '1920,947'
   const readyTimeoutMs = Number(config.readyTimeoutMs) > 0 ? Number(config.readyTimeoutMs) : 120000
+  // GUI-subsystem host: pythonw has no console, so the spawned cloakserve can
+  // never surface a terminal window regardless of the parent's console state.
   const pythonBin = process.platform === 'win32'
-    ? path.join(projectRoot, '.venv', 'Scripts', 'python.exe')
+    ? path.join(projectRoot, '.venv', 'Scripts', 'pythonw.exe')
     : path.join(projectRoot, '.venv', 'bin', 'python')
   const cloakservePath = path.join(root, 'bin', 'cloakserve')
   const logPath = path.join(root, 'cloakserve.log')
@@ -92,7 +96,12 @@ export function cloakRuntime(config = {}) {
         `CloakBrowser runtime not provisioned (missing ${pythonBin}). Run first: powershell -ExecutionPolicy Bypass -File "${path.join(root, 'ensure.ps1')}" (uv sync + browser install)`,
       )
     }
-    const args = [cloakservePath, `--port=${port}`, `--data-dir=${dataDir}`]
+    // 无头启动：画面经 CDP 截图镜像到右栏面板，不弹独立窗口。
+    // 裸 --headless 由 cloakserve CLI 透传给 Chrome（其 build_args 不生成该 flag）。
+    // --window-size 同为透传：接管 headless 默认的 764×451 小视口（DEFAULT_VIEWPORT
+    // 模拟视口在 headless 下不生效），面板 letterbox 显示时画面饱满清晰。
+    const args = [cloakservePath, `--port=${port}`, `--data-dir=${dataDir}`,
+                  '--headless', `--window-size=${windowSize}`]
     if (currentProxy) args.push(`--proxy-server=${currentProxy}`)
     const logFd = openSync(logPath, 'a')
     let proc

@@ -251,3 +251,21 @@
   flex: 0 0 auto;
   margin-right: 4px;
 }
+
+/* Invisible IME carrier: the system input method composes here (its candidate
+   window follows this box, which pointer-down parks at the click point); every
+   composition step is mirrored into the remote page over CDP. */
+.imeInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  resize: none;
+  overflow: hidden;
+  z-index: 1;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+}

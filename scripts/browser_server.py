@@ -6,7 +6,8 @@
 （cloak/bin/cloakserve，CDP 多路复用服务）**，本服务不再自带浏览器：
 
 - 首次需要浏览器时探测 cloakserve（127.0.0.1:9333），未运行则按需拉起（与 cloak/plugin
-  的 service.js 同一套参数：--port/--data-dir/--proxy-server），随后经 ``connect_over_cdp``
+  的 service.js 同一套参数：--port/--data-dir/--proxy-server/--headless，无头启动不弹窗，
+  画面经 CDP 截图镜像到右栏面板），随后经 ``connect_over_cdp``
   连上共享 BrowserContext（同一上下文跨请求复用，Cookie/会话状态延续，且与 cloak_fetch
   工具、右栏画面共享登录态）；
 - 监听本机回环 TCP（默认 127.0.0.1），每个连接读取一行 JSON 指令，渲染完回一行 JSON 应答后关闭；
@@ -41,6 +42,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -85,13 +87,25 @@ def parse_proxy(proxy_str: str | None) -> str | None:
 
 
 # ── cloakserve（唯一浏览器服务）生命周期 ─────────────────────────────────────
-# 与 cloak/plugin/service.js 同参数：--port / --data-dir / --proxy-server。
+# 与 cloak/plugin/service.js 同参数：--port / --data-dir / --proxy-server / --headless。
 # 拉起用 DETACHED_PROCESS 脱离本服务的进程树——本服务被 taskkill /T 关闭时不连带
 # 关掉共享的 cloakserve（它归 dsh-cloakbrowser 插件与后续会话复用）。
 CLOAKSERVE_PORT = 9333
 _CLOAK_ROOT = Path(__file__).resolve().parent.parent / 'cloak'
 _CLOAKSERVE_LOG = _CLOAK_ROOT / 'cloakserve.log'
 _CLOAKSERVE_READY_TIMEOUT_S = 60.0
+
+
+def _window_size() -> str:
+    """Chrome 窗口尺寸（W,H）：headless 下即页面视口。
+
+    默认与 cloak/plugin/service.js 一致；``CLOAK_WINDOW_SIZE=W,H`` 环境变量可覆盖，
+    非法格式回落默认。面板的视口跟随（panel_resize）在其后按需调整。
+    """
+    value = os.environ.get('CLOAK_WINDOW_SIZE', '')
+    if re.fullmatch(r'[0-9]+,[0-9]+', value or ''):
+        return value
+    return '1920,947'
 
 
 async def _cloakserve_alive() -> bool:
@@ -126,14 +140,22 @@ async def ensure_cloakserve(proxy: str | None) -> None:
     if not script.exists():
         raise RuntimeError(f'cloakserve 不存在: {script}（先运行 cloak/ensure.ps1 预铺运行时）')
     data_dir = _CLOAK_ROOT / 'data'
+    # --headless：无头启动，不弹独立窗口（画面经 CDP 截图镜像到右栏面板）。
+    # 裸 --headless 由 cloakserve CLI 透传给 Chrome（其 build_args 不生成该 flag）。
+    # --window-size 同为透传：接管 headless 默认的 764×451 小视口（DEFAULT_VIEWPORT
+    # 模拟视口在 headless 下不生效）；CLOAK_WINDOW_SIZE=W,H 可覆盖，与 service.js 一致。
     args = [sys.executable, str(script),
-            f'--port={CLOAKSERVE_PORT}', f'--data-dir={data_dir}']
+            f'--port={CLOAKSERVE_PORT}', f'--data-dir={data_dir}',
+            '--headless', f'--window-size={_window_size()}']
     if proxy:
         args.append(f'--proxy-server={proxy}')
     kwargs: dict = {'cwd': str(_CLOAK_ROOT)}
     if os.name == 'nt':
-        # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP：脱离本进程树，独立成组
-        kwargs['creationflags'] = 0x00000008 | 0x00000200
+        # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP：脱离本控制台组，独立成组
+        # （taskkill /T 关本服务时不连带杀共享 cloakserve，见 02 §5.6）。
+        # CREATE_NO_WINDOW：即使解释器不是 pythonw（GUI 子系统）也绝不为
+        # cloakserve 建控制台窗口——用户侧任何宿主环境下都不弹终端。
+        kwargs['creationflags'] = 0x00000008 | 0x00000200 | 0x08000000
     else:
         kwargs['start_new_session'] = True
     log = open(_CLOAKSERVE_LOG, 'ab')
@@ -343,6 +365,8 @@ async def _forget_page(page) -> None:
             _page_used.pop(pid, None)
             break
     _wired.discard(page)
+    if _sc.get('page') is page:
+        await _screencast_stop()
     try:
         await page.close()
     except Exception:
@@ -385,6 +409,116 @@ _PANEL_KEY_ACTIONS = ('press', 'insert')
 _PANEL_NO_PAGE = '没有可截图的页面，请先打开一个网址'
 _PANEL_NO_PAGE_INPUT = '没有可操作的页面，请先打开一个网址'
 _PANEL_NO_TAB = '标签不存在或已关闭'   # 标签栏切/关时传了非法或已关闭的 id
+
+# ── screencast 帧缓存（方案 B）────────────────────────────────────────────────
+# CDP Page.startScreencast 只在画面变化时推帧（静止页不推），远比每次轮询
+# page.screenshot（真实渲染+JPEG 编码，几十 ms）便宜。帧到达即写入缓存，
+# screenshot op 只读缓存：轮询回包不再触发渲染，端到端延迟≈轮询间隔。
+# 换页/切标签由 _screencast_ensure 懒重启；帧事件不拿 _page_lock（写两个
+# 字段无 await 交错），取帧侧在锁内读——不会拖慢输入转发。
+_sc: dict = {
+    'page': None,       # screencast 绑定的页
+    'cdp': None,        # Playwright CDP session
+    'quality': 0,       # 启帧时的 JPEG 质量（quality 变了要重启才能生效）
+    'seq': 0,           # 帧序号：每收到一帧 +1，前端据此跳过重复帧
+    'jpeg': None,       # 最新帧的 base64 JPEG（None = 还没有首帧）
+    'viewport': None,   # 启帧时读一次的 CSS 视口 {width, height, dpr}
+}
+
+# ── 视口跟随（方案 C：panel_resize）───────────────────────────────────────────
+# 面板容器尺寸变化时前端发 panel_resize，这里把会话页视口改成面板的 CSS 像素
+# 尺寸——页面真正 reflow，画面 1:1 无 letterbox。期望视口记住在 _panel_want，
+# 换页（navigate/切标签/采纳弹窗）后自动重放，agent 导航也不会掉回默认视口。
+# CLOAK_VIEWPORT_FOLLOW=0 整体关闭（agent 采集要锁定渲染尺寸时用）。
+_PANEL_WANT: dict | None = None
+_VIEWPORT_MIN = (320, 240)
+_VIEWPORT_MAX = (2560, 1600)
+_VIEWPORT_FOLLOW_OFF = os.environ.get('CLOAK_VIEWPORT_FOLLOW', '1') in ('0', 'false', 'no')
+
+
+def _clamp_viewport(width, height) -> tuple[int, int] | None:
+    """把前端报来的容器尺寸钳进合法范围；非法（非数字/非正）返回 None。"""
+    try:
+        w, h = int(float(width)), int(float(height))
+    except (TypeError, ValueError):
+        return None
+    if w <= 0 or h <= 0:
+        return None
+    return (max(_VIEWPORT_MIN[0], min(_VIEWPORT_MAX[0], w)),
+            max(_VIEWPORT_MIN[1], min(_VIEWPORT_MAX[1], h)))
+
+
+async def _apply_panel_viewport(page) -> None:
+    """把面板期望视口应用到页（幂等；无期望或跟随关闭时 no-op）。
+
+    视口真的变了就作废 screencast 缓存：下一 tick 懒重启推流，且重启前
+    jpeg 为空会走实时截图兜底——首帧直接是新尺寸，无糊帧过渡。
+    """
+    global _sc
+    if _PANEL_WANT is None or _VIEWPORT_FOLLOW_OFF:
+        return
+    want = {'width': _PANEL_WANT['width'], 'height': _PANEL_WANT['height']}
+    try:
+        current = page.viewport_size or {}
+        if (int(current.get('width') or 0) == want['width']
+                and int(current.get('height') or 0) == want['height']):
+            return
+        await page.set_viewport_size(want)
+    except Exception:
+        return
+    if _sc.get('page') is page:
+        await _screencast_stop()
+
+
+async def _screencast_stop() -> None:
+    """停掉当前 screencast 并丢弃缓存（幂等）；页已关时 CDP 报错，忽略。"""
+    _sc_update = _sc
+    cdp = _sc_update.get('cdp')
+    _sc_update.update({'page': None, 'cdp': None, 'jpeg': None, 'viewport': None})
+    if cdp is None:
+        return
+    try:
+        await cdp.send('Page.stopScreencast')
+    except Exception:
+        pass
+    try:
+        await cdp.detach()
+    except Exception:
+        pass
+
+
+async def _screencast_ensure(page, quality: int) -> None:
+    """确保 page 上有活跃 screencast；绑定页/质量变了先停旧的再启新的。
+
+    启动失败向上抛：调用方回退实时截图（screencast 不可用不应让画面消失）。
+    """
+    global _sc
+    if (_sc.get('page') is page and _sc.get('cdp') is not None
+            and _sc.get('quality') == quality):
+        return
+    await _screencast_stop()
+    cdp = await page.context.new_cdp_session(page)
+
+    async def _on_frame(params):
+        # 换页后这帧作废：不 ack（旧流随 detach 停止）、不更新缓存。
+        if _sc.get('cdp') is not cdp:
+            return
+        try:
+            # 必须及时 ack，否则 Chromium 认为消费不过来会停止推帧（背压）。
+            await cdp.send('Page.screencastFrameAck', {'sessionId': params['sessionId']})
+        except Exception:
+            return
+        _sc['jpeg'] = params.get('data') or ''
+        _sc['seq'] += 1
+
+    cdp.on('Page.screencastFrame', _on_frame)
+    await cdp.send('Page.startScreencast', {
+        'format': 'jpeg', 'quality': quality,
+        'everyNthFrame': 1, 'maxWidth': 1920, 'maxHeight': 1200,
+    })
+    viewport = await _panel_viewport(page)
+    _sc.update({'page': page, 'cdp': cdp, 'quality': quality,
+                'viewport': viewport if viewport.get('width') else None})
 
 
 def _serializable(value):
@@ -562,6 +696,7 @@ async def _adopt_popup(popup) -> None:
             _wire_page(popup)
             _activate_page(_register_page(popup))
             await _align_viewport(popup, previous)
+            await _apply_panel_viewport(popup)
         await _evict_over_cap()
     except Exception:
         pass
@@ -607,6 +742,7 @@ async def debug_navigate(req: dict, proxy: str | None, profile_dir: str | None =
                 status = resp.status or 0
         except Exception:
             pass
+        await _apply_panel_viewport(page)
         if dismiss:
             await dismiss_cookie_overlays(page)
         await page.wait_for_timeout(wait_ms)
@@ -748,30 +884,37 @@ async def panel_state(req: dict) -> dict:
 
 
 async def panel_screenshot(req: dict) -> dict:
-    """截一张会话页 JPEG 帧（base64）给画面面板；css_width/css_height 供前端换算输入坐标。"""
+    """取最新镜像帧（方案 B：screencast 缓存，不再每帧实时渲染截图）。
+
+    请求在原有 quality/scale 之外可带 ``since``（客户端已见的帧序号）：没有
+    更新的帧时回 ``unchanged: true`` 的短包（不带 base64），静止页面轮询近乎
+    零开销。screencast 不可用时退回实时 ``page.screenshot``，字段与旧版兼容。
+    """
     quality = int(_panel_number(req.get('quality'), _PANEL_QUALITY_DEFAULT))
     quality = max(_PANEL_QUALITY_MIN, min(_PANEL_QUALITY_MAX, quality))
     scale = req.get('scale') or 'css'
     if scale not in _PANEL_SCALES:
         return {'ok': False, 'error': f'不支持的 scale: {scale}（仅支持 css / device）'}
-    async with _page_lock:
-        page = _session.get('page')
-        if page is None:
-            return {'ok': False, 'error': _PANEL_NO_PAGE}
+    try:
+        since = int(req.get('since') or 0)
+    except (TypeError, ValueError):
+        since = 0
+
+    async def _live_screenshot(page) -> dict | None:
+        """实时截图回退（screencast 挂了/首帧未到）；返回 None 表示页面已关闭。"""
         try:
             raw = await page.screenshot(type='jpeg', quality=quality, scale=scale)
         except Exception as e:
+            if page.is_closed():
+                return None
             return {'ok': False, 'error': _panel_error(e)}
-        # 帧已到手，只是元数据可能读不到（页面正处在 goto 中段、执行上下文被销毁）：
-        # 丢掉这张帧等于让面板在"正在加载"期间黑屏报错，所以退回不依赖 JS 的字段，
-        # 视口拿 viewport_size、标题与地址留空由下一次轮询补齐；拿不到尺寸才认失败。
         try:
             viewport = await _panel_viewport(page)
             url = page.url or ''
             title = (await page.title()) or ''
         except Exception as e:
             if page.is_closed():
-                return {'ok': False, 'error': _panel_error(e)}
+                return None
             size = page.viewport_size or {}
             if not size.get('width') or not size.get('height'):
                 return {'ok': False, 'error': _panel_error(e)}
@@ -780,6 +923,53 @@ async def panel_screenshot(req: dict) -> dict:
             title = ''
         return {
             'ok': True, 'data': base64.b64encode(raw).decode('ascii'), 'format': 'jpeg',
+            'seq': _sc['seq'], 'css_width': viewport['width'], 'css_height': viewport['height'],
+            'dpr': viewport['dpr'], 'url': url, 'title': title,
+        }
+
+    async with _page_lock:
+        page = _session.get('page')
+        if page is None:
+            return {'ok': False, 'error': _PANEL_NO_PAGE}
+        try:
+            await _screencast_ensure(page, quality)
+        except Exception:
+            result = await _live_screenshot(page)
+            if result is not None:
+                return result
+            return {'ok': False, 'error': _PANEL_NO_PAGE}
+
+        seq = _sc['seq']
+        jpeg = _sc['jpeg']
+        # 首帧未到（screencast 刚启动）：实时截一次顶上，下一 tick 就有缓存帧了。
+        if jpeg is None:
+            result = await _live_screenshot(page)
+            if result is not None:
+                return result
+            return {'ok': False, 'error': _PANEL_NO_PAGE}
+
+        try:
+            url = page.url or ''
+            title = (await page.title()) or ''
+        except Exception as e:
+            if page.is_closed():
+                return {'ok': False, 'error': _panel_error(e)}
+            url, title = '', ''
+
+        if seq <= since:
+            # 无新帧（页面静止时 screencast 不推）：短包 + 复用启帧时的视口。
+            viewport = _sc.get('viewport') or {}
+            return {
+                'ok': True, 'unchanged': True, 'seq': seq, 'url': url, 'title': title,
+                'css_width': viewport.get('width', 0), 'css_height': viewport.get('height', 0),
+                'dpr': viewport.get('dpr', 1.0),
+            }
+        viewport = _sc.get('viewport') or {}
+        if not viewport.get('width'):
+            viewport = await _panel_viewport(page)
+            _sc['viewport'] = viewport
+        return {
+            'ok': True, 'data': jpeg, 'format': 'jpeg', 'seq': seq,
             'css_width': viewport['width'], 'css_height': viewport['height'],
             'dpr': viewport['dpr'], 'url': url, 'title': title,
         }
@@ -882,6 +1072,98 @@ async def _session_facts() -> dict:
         return {'has_page': True, 'url': '', 'title': ''}
 
 
+# ── IME 镜像（面板输入法组字实时同步）───────────────────────────────────────
+# 本地输入法在面板的透明 textarea 上组字，每个缓冲字符经 CDP Input domain
+# 写进会话页（Input.imeSetComposition 显示缓冲、Input.insertText 上屏）——
+# 远程输入框里能看到拼音逐字出现，与本地打字体验一致（方案 D / 路线②）。
+# 独立缓存一份 cdp session：screencast 的 session 随帧缓存重启，生命周期不同。
+_ime: dict = {'page': None, 'cdp': None}
+
+
+async def _ime_cdp(page):
+    """当前页的 IME 命令通道；换页惰性重建（旧 session 随页失效，detach 忽略错误）。"""
+    global _ime
+    if _ime.get('page') is page and _ime.get('cdp') is not None:
+        return _ime['cdp']
+    stale = _ime.get('cdp')
+    _ime.update({'page': page, 'cdp': None})
+    if stale is not None:
+        try:
+            await stale.detach()
+        except Exception:
+            pass
+    cdp = await page.context.new_cdp_session(page)
+    _ime['cdp'] = cdp
+    return cdp
+
+
+async def panel_ime(req: dict) -> dict:
+    """把面板输入法的组字链镜像到会话页：compose=缓冲可见，commit=最终文本上屏。
+
+    前端对 compose/commit 串行发送（commit 必须晚于最后一个 compose 抵达）；
+    x/y 为可选的页面 CSS 坐标（缓冲光标定位，一般取点击处）。
+    """
+    global _ime
+    action = str(req.get('action') or '')
+    if action not in ('compose', 'commit'):
+        return {'ok': False, 'error': f'未知的 ime 动作: {action}'}
+    text = str(req.get('text') or '')
+    x, y = _panel_coord(req.get('x')), _panel_coord(req.get('y'))
+    async with _page_lock:
+        page = _session.get('page')
+        if page is None:
+            return {'ok': False, 'error': _PANEL_NO_PAGE_INPUT}
+        try:
+            cdp = await _ime_cdp(page)
+            if action == 'compose':
+                params: dict = {
+                    'text': text,
+                    'selectionStart': len(text),
+                    'selectionEnd': len(text),
+                }
+                if x is not None and y is not None:
+                    params['x'], params['y'] = x, y
+                await cdp.send('Input.imeSetComposition', params)
+            else:
+                # insertText 用最终文本替换整个组合区并结束组合（Chromium 语义）。
+                await cdp.send('Input.insertText', {'text': text})
+            return {'ok': True}
+        except Exception as e:
+            # 页被换掉时 session 失效：丢弃缓存，下一次调用自动重建。
+            _ime.update({'page': None, 'cdp': None})
+            return {'ok': False, 'error': _panel_error(e)}
+
+
+async def panel_resize(req: dict) -> dict:
+    """视口跟随：把会话页视口改成面板容器的 CSS 像素尺寸（页面 reflow，画面 1:1）。
+
+    无会话页时只记住期望（pending），开页/换页后由 _apply_panel_viewport 重放。
+    CLOAK_VIEWPORT_FOLLOW=0 时为空操作（followed:false）。
+    """
+    global _PANEL_WANT
+    if _VIEWPORT_FOLLOW_OFF:
+        return {'ok': True, 'followed': False}
+    size = _clamp_viewport(req.get('width'), req.get('height'))
+    if size is None:
+        return {'ok': False, 'error': '缺少或非法的 width/height'}
+    async with _page_lock:
+        _PANEL_WANT = {'width': size[0], 'height': size[1]}
+        page = _session.get('page')
+        if page is None:
+            return {'ok': True, 'followed': True, 'pending': True,
+                    'width': size[0], 'height': size[1]}
+        await _apply_panel_viewport(page)
+        try:
+            vp = page.viewport_size or {}
+        except Exception:
+            vp = {}
+        return {
+            'ok': True, 'followed': True,
+            'width': int(vp.get('width') or size[0]),
+            'height': int(vp.get('height') or size[1]),
+        }
+
+
 async def panel_pages(req: dict) -> dict:
     """列出会话页标签（面板标签栏）：id / 地址 / 标题 / 是否当前页。
 
@@ -909,6 +1191,7 @@ async def panel_select(req: dict) -> dict:
         if _page_tabs.get(pid) is None:
             return {'ok': False, 'error': _PANEL_NO_TAB}
         _activate_page(pid)
+        await _apply_panel_viewport(_page_tabs[pid])
         return {'ok': True, 'id': pid, **await _session_facts()}
 
 
@@ -962,6 +1245,10 @@ async def handle_conn(reader: asyncio.StreamReader, writer: asyncio.StreamWriter
                 result = {'ok': True, 'closed': True}
             elif op == 'panel_state':
                 result = await panel_state(req)
+            elif op == 'ime':
+                result = await panel_ime(req)
+            elif op == 'panel_resize':
+                result = await panel_resize(req)
             elif op == 'screenshot':
                 result = await panel_screenshot(req)
             elif op == 'mouse':
